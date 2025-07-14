@@ -1,0 +1,2 @@
+# doom-whitelist-uid
+whitelist
