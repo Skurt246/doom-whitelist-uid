@@ -1,5 +1,7 @@
 {
   "InteriumKey-FOREVER1": "never",
   "InteriumKey-FOREVER2": "never",
-  "InteriumKey-ONEMIN": "2025-12-02T16:43:00Z"
+  "InteriumKey-ONEMIN": "1m",
+  "InteriumKey-5MIN": "5m",
+  "InteriumKey-1DAY": "1d"
 }
