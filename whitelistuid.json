@@ -1,20 +1,6 @@
 {
-  "TEST-A1B2-C3D4": {
-    "duration": "1m"
-  },
-  "TEST-E5F6-G7H8": {
-    "duration": "2m"
-  },
-  "DEMO-X9Y8-Z7W6": {
-    "duration": "5m"
-  },
-  "PREMIUM-K3L4-M5N6": {
-    "duration": "30m"
-  },
-  "VIP-P7Q8-R9S0": {
-    "duration": "1h"
-  },
-  "LIFETIME-T1U2-V3W4": {
-    "duration": "never"
-  }
+  "TEST-1234-ABCD": true,
+  "PREMIUM-5678-EFGH": true,
+  "BLOCKED-USER": false,
+  "VIP-9012-IJKL": true
 }
