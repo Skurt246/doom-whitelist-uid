@@ -1,5 +1,14 @@
 {
-  "status": "active",
-  "key": "c3f494033ecc305300b4003828508cd14ae3740f4b2da89ab0f446619062e6a1",
-  "version": "29.2"
+  "users": [
+    {
+      "name": "Donanton",
+      "key": "e4b9468e07823485785a2251a2d5930b2e88a38f328f418d18408f614051010d",
+      "status": "active"
+    },
+    {
+      "name": "Skurt",
+      "key": "1f67f706d88476f571694f923b320d5754020a811c801e749298517227d86f77",
+      "status": "active"
+    }
+  ]
 }
