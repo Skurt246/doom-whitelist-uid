@@ -1,6 +1,5 @@
 {
-  "TEST-1234-ABCD": true,
-  "PREMIUM-5678-EFGH": true,
-  "BLOCKED-USER": false,
-  "VIP-9012-IJKL": true
+  "status": "active",
+  "key": "9d80d294828109d9361719c8f0016e457e5d2217f25950d4d420689b07186634",
+  "version": "29.2"
 }
