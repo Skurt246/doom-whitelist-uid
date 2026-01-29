@@ -1,13 +1,15 @@
 {
   "users": [
     {
-      "name": "Donanton",
-      "key": "e4b9468e07823485785a2251a2d5930b2e88a38f328f418d18408f614051010d",
+      "name": "doomed",
+      "key": "0391bd890423b4883d1387e7231c005adb071c657e49148c46a5dbb3607b2ad8",
+      "token": "Interium_Secure_Token_1",
       "status": "active"
     },
     {
-      "name": "Skurt",
-      "key": "1f67f706d88476f571694f923b320d5754020a811c801e749298517227d86f77",
+      "name": "Donanton",
+      "key": "8c1f23bab86461c2aa08635d44b4d41edcdc8862d40294462106333bc5eae4a3",
+      "token": "Interium_Secure_Token_2",
       "status": "active"
     }
   ]
