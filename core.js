@@ -7,24 +7,33 @@
     }
 
 function init() {
-const BACKGROUND_GIF = 'https://i.pinimg.com/originals/d2/96/e0/d296e07c0e5f9c76483055aa12dc5816.gif';
-const applyBackground = () => {
-const bg = document.getElementById('titleBackground');
-if (!bg) return setTimeout(applyBackground, 300);
-bg.style.backgroundImage = `url('${BACKGROUND_GIF}')`;
-bg.style.backgroundSize = 'cover';
-bg.style.backgroundPosition = 'center';
-bg.style.backgroundRepeat = 'no-repeat';
-bg.style.filter = 'brightness(1.1) contrast(1.1)';
-['moon', 'tower', 'lava', '.fog', '.stones'].forEach(sel => {
-if (sel.startsWith('.')) {
-document.querySelectorAll(sel).forEach(el => el.style.display = 'none');
-} else {
-const el = document.getElementById(sel);
-if (el) el.style.display = 'none';
+    const BACKGROUND_GIF = 'https://i.pinimg.com/originals/d2/96/e0/d296e07c0e5f9c76483055aa12dc5816.gif';
+    const forceUI = () => {
+        const bg = document.getElementById('titleBackground');
+        const title = document.getElementById('title');
+        if (bg) {
+            bg.style.backgroundImage = `url('${BACKGROUND_GIF}')`;
+            bg.style.backgroundSize = 'cover';
+            bg.style.display = 'block'; // На всякий случай
+            ['moon', 'tower', 'lava'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+        }
+        if (title && !document.getElementById('interium-logo')) {
+            title.style.display = 'none';
+            createLogo(); 
+        }
+    };
+    const uiFixer = setInterval(forceUI, 100);
+    setTimeout(() => clearInterval(uiFixer), 10000);
+    createNotificationContainer();
+    createOverlay();
+    createFPSCounter();
+    createChangelog();
+    renderContent();
+    fixLayout();
 }
-});
-};
 const createLogo = () => {
 const title = document.getElementById('title');
 if (title) title.style.display = 'none';
