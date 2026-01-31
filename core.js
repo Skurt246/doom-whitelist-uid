@@ -1,15 +1,3 @@
-// ==UserScript==
-// @name         Interium Absolute Phantom v13.0.2 — FULL FIX
-// @namespace    interium.cc
-// @version      13.0.2
-// @description  Fixed MsgPack | Instant Lobby | Persistent Binds | Smart Menu | Building Macros
-// @match        *://doomed.io/*
-// @grant        GM_setValue
-// @grant        GM_getValue
-// @grant        GM_deleteValue
-// @run-at       document-start
-// ==/UserScript==
-
 (() => {
 'use strict';
 
