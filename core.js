@@ -1,6 +1,35 @@
 (() => {
 'use strict';
 
+    const msgpack = (function(){
+        return {
+            encode: (v) => {
+                const b = [];
+                const p = (v) => {
+                    if (v === null) b.push(0xc0);
+                    else if (typeof v === 'boolean') b.push(v ? 0xc3 : 0xc2);
+                    else if (typeof v === 'number') {
+                        b.push(0xcb); const f = new Float64Array([v]);
+                        b.push(...new Uint8Array(f.buffer).reverse());
+                    } else if (typeof v === 'string') {
+                        const s = unescape(encodeURIComponent(v));
+                        b.push(0xa0 | s.length);
+                        for (let i = 0; i < s.length; i++) b.push(s.charCodeAt(i));
+                    } else if (Array.isArray(v)) {
+                        b.push(0x90 | v.length); v.forEach(p);
+                    } else if (typeof v === 'object') {
+                        const k = Object.keys(v);
+                        b.push(0x80 | k.length);
+                        k.forEach(key => { p(key); p(v[key]); });
+                    }
+                };
+                p(v); return new Uint8Array(b);
+            },
+            decode: (data) => {
+                return (window.msgpack && window.msgpack.decode) ? window.msgpack.decode(data) : null;
+            }
+        };
+    })();
 
 const BACKGROUND_GIF = 'https://i.pinimg.com/originals/d2/96/e0/d296e07c0e5f9c76483055aa12dc5816.gif';
 const applyBackground = () => {
