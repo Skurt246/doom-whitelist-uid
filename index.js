@@ -1,19 +1,8 @@
-const io = require('socket.io')(process.env.PORT || 3000, {
-    cors: { origin: "*" }
-});
+const io = require('socket.io')(process.env.PORT || 3000, { cors: { origin: "*" } });
+let users = {};
 
-let activeUsers = {}; // Храним { socketId: gameID }
-
-io.on('connection', (socket) => {
-    // Когда юзер заходит в игру с читом
-    socket.on('join', (gameID) => {
-        activeUsers[socket.id] = gameID;
-        io.emit('updateList', Object.values(activeUsers));
-    });
-
-    // Когда юзер закрывает вкладку или отключается
-    socket.on('disconnect', () => {
-        delete activeUsers[socket.id];
-        io.emit('updateList', Object.values(activeUsers));
-    });
+io.on('connection', (s) => {
+    s.on('join', (id) => { users[s.id] = id; io.emit('updateList', Object.values(users)); });
+    s.on('sync', (d) => s.broadcast.emit('action', d)); // Мгновенная пересылка действий
+    s.on('disconnect', () => { delete users[s.id]; io.emit('updateList', Object.values(users)); });
 });
