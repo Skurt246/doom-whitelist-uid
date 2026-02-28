@@ -645,33 +645,30 @@ function startClanSpam() {
     const input = document.getElementById('input_clan_name');
     const createBtn = document.getElementById('create_join_clan_button');
     const leaveBtn = document.getElementById('leave_clan_button');
-
+    
     if (!input || !createBtn || !leaveBtn) return;
     stopClanSpam();
 
     clanSpamInterval = setInterval(() => {
-        // Проверяем, существует ли меню в DOM и видно ли оно
-        const menuContainer = document.querySelector('.interium-menu-container') || document.querySelector('[id*="menu"]');
-        const isMenuOpen = menuContainer && (menuContainer.style.display !== 'none' && menuContainer.style.visibility !== 'hidden');
+        // Проверка: если на экране есть меню чита, спам пропускает тик
+        // Мы ищем по классу 'interium-menu-container', который есть в твоем коде
+        const menu = document.querySelector('.interium-menu-container');
+        if (menu && menu.style.display !== 'none') {
+            return; 
+        }
 
-        // Если меню ОТКРЫТО — вообще ничего не делаем, чтобы не сбивать фокус
-        if (isMenuOpen) return;
-
-        // Если меню закрыто — работаем
+        // Если меню закрыто — спамим
         input.value = interiumSeq[spamIndex];
-        
-        // Используем DispatchEvent вместо .click() — это более "тихий" способ, 
-        // который реже вызывает закрытие сторонних окон
-        createBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        createBtn.click();
         
         setTimeout(() => {
-            if (leaveBtn && features.clanspam.enabled && !isMenuOpen) {
-                leaveBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+            if (leaveBtn && features.clanspam.enabled) {
+                leaveBtn.click();
             }
         }, 50);
 
         spamIndex = (spamIndex + 1) % interiumSeq.length;
-    }, Math.max(features.clanspam.speed, 150)); 
+    }, Math.max(features.clanspam.speed, 150));
 }
 function stopClanSpam() {
 if (clanSpamInterval) clearInterval(clanSpamInterval);
