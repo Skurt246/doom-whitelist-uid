@@ -363,21 +363,34 @@ return false;
 };
 
 let currentTrapIndex = 0;
+// Оставляем trap_wood, но в поиске ниже добавим гибкость
 const traps = [{ id: 'trap_wood', name: 'Wooden Trap', enabled: false }];
 const getEnabledTraps = () => traps.filter(t => t.enabled);
+
 const selectNextTrap = () => {
-if (!features.trapSelector.enabled) return false;
-const enabled = getEnabledTraps();
-if (enabled.length === 0) return false;
-currentTrapIndex = (currentTrapIndex + 1) % enabled.length;
-const trap = enabled[currentTrapIndex];
-const el = document.querySelector(`.recipe_image_container[item-id="${trap.id}"], .recipe_image_container[data-item="${trap.id}"]`);
-if (el) {
-el.click(); // ✅ ПРЯМОЙ КЛИК, НИКАКОЙ ЭМУЛЯЦИИ
-showNotification(`🪤 ${trap.name}`, 'info');
-return true;
-}
-return false;
+    if (!features.trapSelector.enabled) return false;
+    const enabled = getEnabledTraps();
+    if (enabled.length === 0) return false;
+    
+    currentTrapIndex = (currentTrapIndex + 1) % enabled.length;
+    const trap = enabled[currentTrapIndex];
+    
+    // ФИКС: Ищем по всем возможным атрибутам, которые бывают у ловушки
+    const el = document.querySelector(
+        `.recipe_image_container[item-id="${trap.id}"], ` +
+        `.recipe_image_container[data-item="${trap.id}"], ` +
+        `.recipe_image_container[item-id="trap"], ` +
+        `[recipe-id="73"]` // Прямой поиск по ID рецепта из твоего скриншота
+    );
+
+    if (el) {
+        el.click(); 
+        showNotification(`🪤 ${trap.name}`, 'info');
+        return true;
+    } else {
+        console.log("Trap element not found!"); // Отладка в консоль браузера
+        return false;
+    }
 };
 
 let currentBoosterIndex = 0;
