@@ -642,17 +642,28 @@ return findAllEnemies().filter(e => !e.teammate)[0] || null;
 const interiumSeq = ["I","In","Int","Inte","Inter","Interi","Interiu","Interium","Interiu","Interi","Inter","Inte","Int","In","I"];
 let spamIndex = 0;
 function startClanSpam() {
-const input = document.getElementById('input_clan_name');
-const createBtn = document.getElementById('create_join_clan_button');
-const leaveBtn = document.getElementById('leave_clan_button');
-if (!input || !createBtn || !leaveBtn) return;
-stopClanSpam();
-clanSpamInterval = setInterval(() => {
-input.value = interiumSeq[spamIndex];
-createBtn.click();
-setTimeout(() => leaveBtn.click(), features.clanspam.speed / 2);
-spamIndex = (spamIndex + 1) % interiumSeq.length;
-}, features.clanspam.speed);
+    const input = document.getElementById('input_clan_name');
+    const createBtn = document.getElementById('create_join_clan_button');
+    const leaveBtn = document.getElementById('leave_clan_button');
+    
+    if (!input || !createBtn || !leaveBtn) return;
+    stopClanSpam();
+
+    clanSpamInterval = setInterval(() => {
+        // Проверяем, открыто ли меню. Если открыто — пропускаем этот шаг спама.
+        const menuEl = document.querySelector('.interium-menu-container'); // Или твой ID меню
+        if (menuEl && menuEl.style.display !== 'none') return;
+
+        input.value = interiumSeq[spamIndex];
+        createBtn.click();
+        
+        // Маленькая задержка перед выходом
+        setTimeout(() => {
+            if (leaveBtn && features.clanspam.enabled) leaveBtn.click();
+        }, 40);
+
+        spamIndex = (spamIndex + 1) % interiumSeq.length;
+    }, Math.max(features.clanspam.speed, 100)); // Защита от слишком высокой скорости
 }
 function stopClanSpam() {
 if (clanSpamInterval) clearInterval(clanSpamInterval);
