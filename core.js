@@ -363,24 +363,28 @@ return false;
 };
 
 let currentTrapIndex = 0;
-// Оставляем trap_wood, но в поиске ниже добавим гибкость
-const traps = [{ id: 'trap_wood', name: 'Wooden Trap', enabled: false }];
-const getEnabledTraps = () => traps.filter(t => t.enabled);
+// Поставили enabled: true сразу, чтобы бинд работал всегда, когда включен селектор
+const traps = [{ id: 'trap_wood', name: 'Wooden Trap', enabled: true }];
+
+const getEnabledTraps = () => {
+    // Если галочка "Trap Selector" в меню выключена — ничего не делаем
+    if (!features.trapSelector.enabled) return [];
+    return traps; 
+};
 
 const selectNextTrap = () => {
-    if (!features.trapSelector.enabled) return false;
     const enabled = getEnabledTraps();
     if (enabled.length === 0) return false;
-    
+
     currentTrapIndex = (currentTrapIndex + 1) % enabled.length;
     const trap = enabled[currentTrapIndex];
-    
-    // ФИКС: Ищем по всем возможным атрибутам, которые бывают у ловушки
+
+    // Ищем всеми способами: по id, по data-item и по номеру рецепта 73
     const el = document.querySelector(
         `.recipe_image_container[item-id="${trap.id}"], ` +
         `.recipe_image_container[data-item="${trap.id}"], ` +
         `.recipe_image_container[item-id="trap"], ` +
-        `[recipe-id="73"]` // Прямой поиск по ID рецепта из твоего скриншота
+        `.recipe_image_container[recipe-id="73"]`
     );
 
     if (el) {
@@ -388,9 +392,15 @@ const selectNextTrap = () => {
         showNotification(`🪤 ${trap.name}`, 'info');
         return true;
     } else {
-        console.log("Trap element not found!"); // Отладка в консоль браузера
-        return false;
+        // Если не нашли, пробуем кликнуть по картинке внутри контейнера
+        const imgEl = document.querySelector(`img[src*="trap"], .recipe_image_container[recipe-id="73"]`);
+        if (imgEl) {
+            imgEl.click();
+            showNotification(`🪤 ${trap.name}`, 'info');
+            return true;
+        }
     }
+    return false;
 };
 
 let currentBoosterIndex = 0;
