@@ -1621,7 +1621,7 @@ setInterval(findCanvas, 800);
 function mainLoop() {
     findCanvas();
 
-    // ✅ FULLBRIGHT РАБОТАЕТ
+    // ✅ FULLBRIGHT (из core (2).js)
     if (gameCanvas) {
         if (features.fullbright && features.fullbright.enabled) {
             gameCanvas.style.filter = 'brightness(2) contrast(1.1)'; 
@@ -1651,8 +1651,7 @@ function mainLoop() {
     requestAnimationFrame(mainLoop);
 }
 
-// Запуск цикла
+// Стартуем цикл
 requestAnimationFrame(mainLoop);
 
-// ✅ ЗАКРЫВАЕМ СКРИПТ (ЭТО ВАЖНО)
-})();
+})(); // <--- ВОТ ЭТА СКОБКА ОБЯЗАТЕЛЬНА, ОНА ЗАКРЫВАЕТ ВЕСЬ СКРИПТ
