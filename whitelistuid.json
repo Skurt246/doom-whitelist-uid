@@ -12,6 +12,5 @@
       "token": "Interium_Secure_Token_2",
       "status": "active"
     }
-  ],
-  "remote_cmd": "showRemoteNotice('СВЯЗЬ УСТАНОВЛЕНА!', 'lime');"
+  ]
 }
