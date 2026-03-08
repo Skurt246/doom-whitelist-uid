@@ -13,5 +13,5 @@
       "status": "active"
     }
   ],
-"remote_cmd"
+  "remote_cmd": "showRemoteNotice('СВЯЗЬ УСТАНОВЛЕНА!', 'lime');"
 }
