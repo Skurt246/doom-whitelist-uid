@@ -1,64 +1,62 @@
 (() => {
-    'use strict';
-    // ────────────────────────────────────────────────
-    //  ✅ MSGPACK ДЕКОДЕР
-    // ────────────────────────────────────────────────
-    const msgpackDecode = (() => {
-        const td = new TextDecoder();
-        return (buf) => {
-            let o = 0, u = new Uint8Array(buf), dv = new DataView(buf);
-            const r = () => {
-                let t = u[o++];
-                if (t < 0x80) return t;
-                if (t >= 0xe0) return (t - 0x100);
-                if ((t & 0xe0) === 0xa0) {
-                    let l = t & 0x1f;
-                    let s = td.decode(u.subarray(o, o + l));
-                    o += l;
-                    return s;
-                }
-                if ((t & 0xf0) === 0x90) {
-                    let l = t & 0x0f, a = [];
-                    for (let i = 0; i < l; i++) a.push(r());
-                    return a;
-                }
-                if ((t & 0xf0) === 0x80) {
-                    let l = t & 0x0f, m = {};
-                    for (let i = 0; i < l; i++) {
-                        let k = r();
-                        m[k] = r();
-                    }
-                    return m;
-                }
-                switch (t) {
-                    case 0xc0: return null;
-                    case 0xc2: return false;
-                    case 0xc3: return true;
-                    case 0xca: { let v = dv.getFloat32(o); o += 4; return v; }
-                    case 0xcb: { let v = dv.getFloat64(o); o += 8; return v; }
-                    case 0xcc: return u[o++];
-                    case 0xcd: { let v = dv.getUint16(o); o += 2; return v; }
-                    case 0xce: { let v = dv.getUint32(o); o += 4; return v; }
-                    case 0xcf: { let v = dv.getBigUint64(o); o += 8; return Number(v); }
-                    case 0xd0: return dv.getInt8(o++);
-                    case 0xd1: { let v = dv.getInt16(o); o += 2; return v; }
-                    case 0xd2: { let v = dv.getInt32(o); o += 4; return v; }
-                    case 0xd3: { let v = dv.getBigInt64(o); o += 8; return Number(v); }
-                    case 0xd9: { let l = u[o++]; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
-                    case 0xda: { let l = dv.getUint16(o); o += 2; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
-                    case 0xdb: { let l = dv.getUint32(o); o += 4; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
-                    case 0xdc: { let l = dv.getUint16(o); o += 2; let a = []; for (let i = 0; i < l; i++) a.push(r()); return a; }
-                    case 0xdd: { let l = dv.getUint32(o); o += 4; let a = []; for (let i = 0; i < l; i++) a.push(r()); return a; }
-                    case 0xde: { let l = dv.getUint16(o); o += 2; let m = {}; for (let i = 0; i < l; i++) { let k = r(); m[k] = r(); } return m; }
-                    case 0xdf: { let l = dv.getUint32(o); o += 4; let m = {}; for (let i = 0; i < l; i++) { let k = r(); m[k] = r(); } return m; }
-                    default: throw new Error(`Unknown type: 0x${t.toString(16)}`);
-                }
-            };
-            return r();
-        };
-    })();
-
-    // Дальше твой код (объекты features, WebSocket и т.д.)
+'use strict';
+// ────────────────────────────────────────────────
+//  ✅ MSGPACK ДЕКОДЕР
+// ────────────────────────────────────────────────
+const msgpackDecode = (() => {
+const td = new TextDecoder();
+return (buf) => {
+let o = 0, u = new Uint8Array(buf), dv = new DataView(buf);
+const r = () => {
+let t = u[o++];
+if (t < 0x80) return t;
+if (t >= 0xe0) return (t - 0x100);
+if ((t & 0xe0) === 0xa0) {
+let l = t & 0x1f;
+let s = td.decode(u.subarray(o, o + l));
+o += l;
+return s;
+}
+if ((t & 0xf0) === 0x90) {
+let l = t & 0x0f, a = [];
+for (let i = 0; i < l; i++) a.push(r());
+return a;
+}
+if ((t & 0xf0) === 0x80) {
+let l = t & 0x0f, m = {};
+for (let i = 0; i < l; i++) {
+let k = r();
+m[k] = r();
+}
+return m;
+}
+switch (t) {
+case 0xc0: return null;
+case 0xc2: return false;
+case 0xc3: return true;
+case 0xca: { let v = dv.getFloat32(o); o += 4; return v; }
+case 0xcb: { let v = dv.getFloat64(o); o += 8; return v; }
+case 0xcc: return u[o++];
+case 0xcd: { let v = dv.getUint16(o); o += 2; return v; }
+case 0xce: { let v = dv.getUint32(o); o += 4; return v; }
+case 0xcf: { let v = dv.getBigUint64(o); o += 8; return Number(v); }
+case 0xd0: return dv.getInt8(o++);
+case 0xd1: { let v = dv.getInt16(o); o += 2; return v; }
+case 0xd2: { let v = dv.getInt32(o); o += 4; return v; }
+case 0xd3: { let v = dv.getBigInt64(o); o += 8; return Number(v); }
+case 0xd9: { let l = u[o++]; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
+case 0xda: { let l = dv.getUint16(o); o += 2; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
+case 0xdb: { let l = dv.getUint32(o); o += 4; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
+case 0xdc: { let l = dv.getUint16(o); o += 2; let a = []; for (let i = 0; i < l; i++) a.push(r()); return a; }
+case 0xdd: { let l = dv.getUint32(o); o += 4; let a = []; for (let i = 0; i < l; i++) a.push(r()); return a; }
+case 0xde: { let l = dv.getUint16(o); o += 2; let m = {}; for (let i = 0; i < l; i++) { let k = r(); m[k] = r(); } return m; }
+case 0xdf: { let l = dv.getUint32(o); o += 4; let m = {}; for (let i = 0; i < l; i++) { let k = r(); m[k] = r(); } return m; }
+default: throw new Error(`Unknown type: 0x${t.toString(16)}`);
+}
+};
+return r();
+};
+})();
 
 // ────────────────────────────────────────────────
 //  ✅ СОХРАНЕНИЕ НАСТРОЕК
@@ -537,6 +535,7 @@ return rawSetTimeout(cb, ms, ...args);
 //  ✅ FULLBRIGHT (ALWAYS ON - БЕЗ ТУМБЛЕРА)
 // ────────────────────────────────────────────────
 const fullBright = () => {
+if (!features.fullbright.enabled) return;
 if (!window.PIXI_APP || !window.PIXI_APP.stage) return;
 const nightLayer = window.PIXI_APP.stage.children.find(c => c.name === "Night Lights");
 if (nightLayer) {
@@ -1217,8 +1216,8 @@ document.removeEventListener('click', handleOutsideClick);
 
 const handleOutsideClick = (e) => {
 if (panel && panel.classList.contains('show')) {
-if (e.target.closest('.ingame_draggable_menu') ||
-e.target.closest('.ingame_menu') ||
+if (e.target.closest('.ingame_draggable_menu') || 
+e.target.closest('.ingame_menu') || 
 e.target.closest('.recipe_image_container') ||
 e.target.closest('#clan_menu')) {
 return;
@@ -1612,102 +1611,33 @@ initMenu();
 }
 
 // ────────────────────────────────────────────────
-//  ULTIMATE CONSOLE-STYLE FULLBRIGHT
+//  CANVAS FINDER + MAIN LOOP
 // ────────────────────────────────────────────────
+function findCanvas() {
+gameCanvas = document.querySelector('canvas');
+}
+setInterval(findCanvas, 800);
 
-const hack = () => {
-    // Пытаемся найти реальное окно игры, где лежит PIXI
-    const targetWindow = window.__PIXI_APP__ ? window : (window.unsafeWindow || window.top);
-
-    if (!features.fullbright.enabled) {
-        if (targetWindow.__PIXI_APP__ && targetWindow.__PIXI_APP__.stage) {
-            const nl = targetWindow.__PIXI_APP__.stage.children.find(c => c.name === "Night Lights");
-            if (nl) nl.visible = true;
-        }
-        return;
-    }
-
-    if (!targetWindow.__PIXI_APP__ || !targetWindow.__PIXI_APP__.stage) return;
-
-    // ТОТ САМЫЙ КОД, КОТОРЫЙ ТЫ КИДАЛ (один в один)
-    const nightLights = targetWindow.__PIXI_APP__.stage.children.find(c => c.name === "Night Lights");
-
-    if (nightLights) {
-        // 1. Прячем сам слой
-        nightLights.visible = false;
-
-        // 2. Ищем шейдер
-        if (nightLights.filters) {
-            nightLights.filters.forEach(f => {
-                if (f.uniforms && f.uniforms.maxOpacity !== undefined) {
-                    f.uniforms.maxOpacity = 0; // Тьма в ноль
-                }
-            });
-        }
-    }
-};
-
-// Запускаем интервал точно так же, как в твоем примере
-setInterval(hack, 1000);
-
-// ────────────────────────────────────────────────
-//  ✅ FINAL WORKING MAIN LOOP
-// ────────────────────────────────────────────────
 function mainLoop() {
-    // 1. Гарантированный поиск канваса
-    if (!gameCanvas) {
-        gameCanvas = document.querySelector('canvas');
-    }
-
-    // 2. Получение данных (безопасное)
-    const enemies = (typeof findAllEnemies === 'function') ? findAllEnemies() : [];
-    const nearest = (typeof findNearestEnemy === 'function') ? findNearestEnemy() : null;
-
-    // 3. ОТРИСОВКА СТРЕЛОЧЕК
-    // Проверяем существование всего пути до enabled
-    if (features && features.arrows && features.arrows.enabled && myPos && gameCanvas) {
-        if (typeof setupArrowCanvas === 'function') setupArrowCanvas();
-
-        // Если инициализация прошла успешно
-        if (arrowCtx) {
-            const rect = gameCanvas.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-
-            // Фильтрация союзников
-            const filtered = (features.arrows.ignoreTeam && enemies.length > 0)
-                ? enemies.filter(e => !e.teammate)
-                : enemies;
-
-            if (typeof drawAllArrows === 'function') {
-                drawAllArrows(centerX, centerY, filtered);
-            }
-        }
-    } else {
-        // Безопасная очистка, если стрелки выключены
-        if (typeof arrowCtx !== 'undefined' && arrowCtx && arrowCanvas) {
-            arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
-        }
-    }
-
-    // 4. АИМБОТ
-    if (myPos && nearest) {
-        if (features && features.aimbot && features.aimbot.enabled) {
-            if (typeof performAim === 'function') {
-                performAim(nearest);
-            }
-        }
-        if (features && features.triggerbot && features.triggerbot.enabled) {
-            if (typeof checkTrigger === 'function') {
-                checkTrigger(nearest);
-            }
-        }
-    }
-
-    requestAnimationFrame(mainLoop);
+findCanvas();
+const enemies = findAllEnemies();
+const nearest = findNearestEnemy();
+if (features.arrows.enabled && myPos && gameCanvas) {
+setupArrowCanvas();
+const rect = gameCanvas.getBoundingClientRect();
+const filtered = features.arrows.ignoreTeam ? enemies.filter(e => !e.teammate) : enemies;
+drawAllArrows(rect.left + rect.width/2, rect.top + rect.height/2, filtered);
+} else if (arrowCtx) {
+arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
+}
+if (myPos && nearest) {
+if (features.aimbot.enabled) performAim(nearest);
+if (features.triggerbot.enabled) checkTrigger(nearest);
+}
+requestAnimationFrame(mainLoop);
 }
 
-// Запуск основного цикла
 requestAnimationFrame(mainLoop);
-console.log('%c[Interium] Fix Applied: Aim & Arrows Synced.', 'color: #00ff00; font-weight: bold');
+loadSettings();                                // 1. СНАЧАЛА грузим настройки
+if (features.fullbright.enabled) fullBright(); // 2. ПОТОМ применяем FullBright с правильными данными
 })();
