@@ -1,6 +1,5 @@
 (() => {
     'use strict';
-
     const msgpackDecode = (() => {
         const td = new TextDecoder();
         return (buf) => {
@@ -56,10 +55,8 @@
         };
     })();
 
-    // ТУТ ДАЛЬШЕ ТВОЙ КОД ЧИТА (features, WebSocket и т.д.)
-    console.log("Core initialized.");
+    // Дальше твой код (объекты features, WebSocket и т.д.)
 
-})();
 // ────────────────────────────────────────────────
 //  ✅ СОХРАНЕНИЕ НАСТРОЕК
 // ────────────────────────────────────────────────
