@@ -91,12 +91,12 @@ ignoreTeam: features[k].ignoreTeam,
 predictionMode: features[k].predictionMode
 };
 });
-GM_setValue('interium_settings_v14', JSON.stringify(data));
+GM_setValue('interium_settings_v13', JSON.stringify(data));
 };
 
 const loadSettings = () => {
 try {
-const raw = GM_getValue('interium_settings_v14');
+const raw = GM_getValue('interium_settings_v13');
 if (!raw) return false;
 const data = JSON.parse(raw);
 Object.keys(features).forEach(k => {
@@ -121,9 +121,8 @@ return false;
 };
 
 // ────────────────────────────────────────────────
-//  ✅ ЛОББИ: ИСПРАВЛЕНО ДВОЕНИЕ ЛОГОТИПА
+//  ✅ ЛОББИ
 // ────────────────────────────────────────────────
-let logoCreated = false;
 const applyLobbyInstant = () => {
 const observer = new MutationObserver((mutations) => {
 for (const mut of mutations) {
@@ -170,8 +169,6 @@ if (el) el.style.display = 'none';
 };
 
 const createLogo = () => {
-// ✅ ПРОВЕРКА: НЕ СОЗДАВАТЬ ЛОГО ПОВТОРНО
-if (logoCreated) return;
 const title = document.getElementById('title');
 if (title) title.style.display = 'none';
 const logo = document.createElement('div');
@@ -183,7 +180,6 @@ anim.textContent = `.letter { opacity:0; display:inline-block; animation:fadeInL
 document.head.appendChild(anim);
 const container = document.getElementById('main-page');
 if (container) container.prepend(logo);
-logoCreated = true; // ✅ МЕТИМ ЧТО ЛОГО СОЗДАНО
 };
 
 const styleUsernameInput = () => {
@@ -220,7 +216,7 @@ ad.remove();
 const cl = document.createElement('div');
 cl.style.cssText = `background: linear-gradient(135deg, rgba(15,25,45,0.92), rgba(20,35,60,0.92)); border: 2px solid #24e9ff88; border-radius: 16px; padding: 20px 24px; margin: 25px auto 15px; max-width: 640px; box-shadow: 0 0 30px #24e9ff88, inset 0 0 20px rgba(36,233,255,0.15); color: #eafdff; font-family: 'Orbitron',sans-serif;`;
 cl.innerHTML = `
-<div style="font-size:18px;font-weight:800;margin-bottom:15px;">INTERIUM v14.0.2</div>
+<div style="font-size:18px;font-weight:800;margin-bottom:15px;">INTERIUM v13.0.2</div>
 <div>🎯 Fixed AimBot - Accurate targeting with corrected coordinates</div>
 <div>📏 Fixed Distance - Arrows show correct distance (5m not 50km)</div>
 <div>⚡ Instant Lobby - Custom background/logo applied immediately</div>
@@ -230,7 +226,6 @@ cl.innerHTML = `
 <div>✅ Notifications Fixed - All toggle messages visible and functional</div>
 <div>📊 FPS Counter - Moved to bottom-left corner</div>
 <div>🔨 AutoCraft - NEW! Auto-craft shields & ammo</div>
-<div>🏆 Clan Spam Fixed - No more menu conflicts, fixed speed</div>
 `;
 document.body.appendChild(cl);
 };
@@ -387,7 +382,7 @@ return false;
 };
 
 // ────────────────────────────────────────────────
-//  ✅ AUTO CRAFT (ИСПРАВЛЕНО)
+//  ✅ AUTO CRAFT (ИСПРАВЛЕНО - РАБОТАЕТ ПО REQUESTANIMATIONFRAME)
 // ────────────────────────────────────────────────
 let autoCraftEnabled = false;
 let autoCraftActive = false;
@@ -409,7 +404,7 @@ const autoCraftClicksPerFrame = 500;
 
 function simulateAutoCraftClick() {
 const itemId = autoCraftItems[autoCraftType];
-const el = document.querySelector(`.recipe_image_container[item-id="${itemId}"], .recipe_image_container[data-item="${itemId}"]`);
+const el = document.querySelector(`.recipe_image_container[item-id="${itemId}"]`);
 if (!el) return;
 el.dispatchEvent(new MouseEvent('click', {
 bubbles: true,
@@ -425,9 +420,8 @@ autoCraftFrameId = requestAnimationFrame(autoCraftLoop);
 }
 
 function toggleAutoCraft() {
-if (!autoCraftEnabled) return;
 autoCraftActive = !autoCraftActive;
-if (autoCraftActive) {
+if (autoCraftActive && autoCraftEnabled) {
 autoCraftFrameId = requestAnimationFrame(autoCraftLoop);
 showNotification(`Auto-Craft (${autoCraftType}) ON`, 'enabled');
 } else {
@@ -438,10 +432,6 @@ showNotification('Auto-Craft OFF', 'disabled');
 
 function setAutoCraftType(type) {
 autoCraftType = type;
-if (autoCraftActive) {
-cancelAnimationFrame(autoCraftFrameId);
-autoCraftFrameId = requestAnimationFrame(autoCraftLoop);
-}
 saveSettings();
 }
 
@@ -627,38 +617,23 @@ return findAllEnemies().filter(e => !e.teammate)[0] || null;
 }
 
 // ────────────────────────────────────────────────
-//  ✅ CLAN SPAM (ИСПРАВЛЕНО: БЕЗ ПРОБЕЛОВ + БЫСТРАЯ СКОРОСТЬ)
+//  CLAN SPAM
 // ────────────────────────────────────────────────
-// ✅ УБРАНЫ ПРОБЕЛЫ ПОСЛЕ БУКВ
-const interiumSeq = ["I", "In", "Int", "Inte", "Inter", "Interi", "Interiu", "Interium", "Interiu", "Interi", "Inter", "Inte", "Int", "In", "I"];
+const interiumSeq = ["I ", "In ", "Int ", "Inte ", "Inter ", "Interi ", "Interiu ", "Interium ", "Interiu ", "Interi ", "Inter ", "Inte ", "Int ", "In ", "I "];
 let spamIndex = 0;
-let clanMenuElement = null;
-
-function findClanMenu() {
-clanMenuElement = document.querySelector('.ingame_draggable_menu, #clan_menu');
-return clanMenuElement;
-}
-
 function startClanSpam() {
 const input = document.getElementById('input_clan_name');
 const createBtn = document.getElementById('create_join_clan_button');
 const leaveBtn = document.getElementById('leave_clan_button');
-if (!input || !createBtn || !leaveBtn) {
-setTimeout(startClanSpam, 500);
-return;
-}
+if (!input || !createBtn || !leaveBtn) return;
 stopClanSpam();
 
-// ✅ ИСПРАВЛЕНА СКОРОСТЬ: ДЕЛИМ НА 3 ДЛЯ БЫСТРОЙ РЕАКЦИИ
 clanSpamInterval = setInterval(() => {
-const menu = document.querySelector('.interium-menu-container, .premium-panel');
-if (menu && menu.classList.contains('show')) {
+const menu = document.querySelector('.interium-menu-container');
+if (menu && menu.style.display !== 'none') {
 return;
 }
 
-findClanMenu();
-
-if (clanMenuElement && clanMenuElement.style.display !== 'none') {
 input.value = interiumSeq[spamIndex];
 createBtn.click();
 
@@ -666,13 +641,11 @@ setTimeout(() => {
 if (leaveBtn && features.clanspam.enabled) {
 leaveBtn.click();
 }
-}, 30);
+}, 50);
 
 spamIndex = (spamIndex + 1) % interiumSeq.length;
+}, Math.max(features.clanspam.speed, 150));
 }
-}, Math.max(features.clanspam.speed / 3, 30)); // ✅ УСКОРЕНО В 3 РАЗА
-}
-
 function stopClanSpam() {
 if (clanSpamInterval) clearInterval(clanSpamInterval);
 clanSpamInterval = null;
@@ -845,18 +818,18 @@ button: 0, clientX: screenX, clientY: screenY, bubbles: true
 }
 
 // ────────────────────────────────────────────────
-//  СТИЛИ МЕНЮ (ОРИГИНАЛЬНЫЕ, БЕЗ ИЗМЕНЕНИЙ)
+//  СТИЛИ МЕНЮ (ОРИГИНАЛЬНЫЕ ИЗ CORE (2).JS)
 // ────────────────────────────────────────────────
 const newMenuStyles = `@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Orbitron:wght@700&display=swap'); :root { --font-main: 'Montserrat', sans-serif; --font-logo: 'Orbitron', sans-serif; --color-text: rgba(255, 255, 255, 0.7); --color-text-bright: #fff; --color-border: rgba(255, 255, 255, 0.1); --color-accent: #24e9ff; --panel-bg: rgba(10, 10, 12, 0.98); --switch-off: rgba(255,255,255,0.05); --switch-on: #24e9ff; } .premium-panel { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 780px; height: 620px; background: var(--panel-bg); backdrop-filter: blur(20px); border-radius: 16px; box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 30px rgba(36, 233, 255, 0.25); border: 1px solid var(--color-border); border-image: linear-gradient(to bottom, transparent, var(--color-accent), transparent) 1; flex-direction: column; font-family: var(--font-main); color: var(--color-text); z-index: 999999; overflow: hidden; transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0; } .premium-panel.show { opacity: 1; transform: translate(-50%, -50%) scale(1); } .p-header { padding: 22px 28px; border-bottom: 1px solid var(--color-border); cursor: grab; user-select: none; background: linear-gradient(90deg, rgba(0,0,0,0.4) 0%, rgba(36,233,255,0.08) 100%); display: flex; align-items: center; justify-content: space-between; } .p-logo { font-family: var(--font-logo); font-size: 26px; background: linear-gradient(90deg, #36ddff, #24e9ff, #00aaff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px; font-weight: 800; text-shadow: 0 0 15px rgba(36, 233, 255, 0.5); } .p-logo span { font-weight: 400; font-family: var(--font-main); font-size: 11px; opacity: 0.5; text-transform: uppercase; letter-spacing: 3px; margin-left: 12px; background: none; -webkit-text-fill-color: var(--color-text); } .p-main { display: flex; flex-grow: 1; overflow: hidden; height: calc(100% - 75px); } .p-sidebar { width: 220px; border-right: 1px solid var(--color-border); background: rgba(0,0,0,0.2); display: flex; flex-direction: column; position: relative; } .p-footer { position: absolute; bottom: 0; left: 0; width: 100%; height: 95px; padding: 0 18px; border-top: 1px solid rgba(36,233,255,0.2); background: rgba(5, 15, 25, 0.92); display: flex; align-items: center; gap: 14px; box-sizing: border-box; box-shadow: 0 -5px 15px rgba(0,0,0,0.3); } .p-user-avatar { width: 42px; height: 42px; background: linear-gradient(135deg, #0a1a2a, #0d2538); border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--color-accent); flex-shrink: 0; box-shadow: 0 0 15px rgba(36, 233, 255, 0.3); } .p-user-avatar svg { width: 22px; height: 22px; fill: var(--color-accent); } .p-user-details { font-size: 12px; line-height: 1.4; } .username-f { font-weight: 800; color: var(--color-accent); font-size: 14px !important; opacity: 1 !important; margin-bottom: 3px; letter-spacing: 0.5px; } .p-tab { display: flex; align-items: center; gap: 14px; padding: 15px 26px; cursor: pointer; color: var(--color-text); font-size: 14px; font-weight: 600; transition: all 0.25s ease; border-left: 3px solid transparent; position: relative; } .p-tab svg { width: 18px; height: 18px; opacity: 0.6; flex-shrink: 0; transition: all 0.3s; } .p-tab:hover { background: rgba(255,255,255,0.04); color: var(--color-text-bright); } .p-tab:hover svg { opacity: 0.9; transform: scale(1.05); } .p-tab.active { color: var(--color-text-bright); background: rgba(36, 233, 255, 0.12); border-left-color: var(--color-accent); } .p-tab.active svg { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 8px var(--color-accent)); } .p-content { flex-grow: 1; padding: 28px; overflow-y: auto; position: relative; } .p-content-tab { display: none; animation: slideIn 0.35s ease-out; } .p-content-tab.active { display: block; } @keyframes slideIn { from { opacity: 0; transform: translateX(15px); } to { opacity: 1; transform: translateX(0); } } .p-groupbox { background: rgba(15, 25, 40, 0.7); border: 1px solid rgba(36, 233, 255, 0.15); border-radius: 14px; padding: 22px; margin-bottom: 24px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25); transition: transform 0.3s ease, box-shadow 0.3s ease; } .p-groupbox:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 15px rgba(36, 233, 255, 0.1); border-color: rgba(36, 233, 255, 0.3); } .p-groupbox-title { font-size: 12px; font-weight: 800; color: rgba(130, 220, 255, 0.85); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1.8px; display: flex; align-items: center; gap: 8px; } .p-groupbox-title::before { content: ""; width: 4px; height: 16px; background: var(--color-accent); border-radius: 2px; display: inline-block; } .p-opt { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 0.2s; } .p-opt:last-child { border-bottom: none; } .p-opt:hover { background: rgba(255,255,255,0.03); border-radius: 8px; } .p-opt-title { display: flex; flex-direction: column; } .p-opt-main { font-weight: 600; color: var(--color-text-bright); margin-bottom: 2px; } .p-opt-desc { font-size: 11px; opacity: 0.65; } .p-switch { width: 48px; height: 24px; background: var(--switch-off); border-radius: 20px; cursor: pointer; position: relative; border: 1.5px solid rgba(255,255,255,0.15); transition: all 0.3s ease; display: flex; align-items: center; } .p-switch.active { background: var(--color-accent); box-shadow: 0 0 15px rgba(36, 233, 255, 0.4); border-color: var(--color-accent); } .p-switch-handle { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: all 0.3s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.3); } .p-switch.active .p-switch-handle { transform: translateX(24px); background: #0a1a2a; } .kb-box { font-size: 11px; color: var(--color-accent); background: rgba(36, 233, 255, 0.12); border: 1px solid rgba(36, 233, 255, 0.4); padding: 4px 10px; border-radius: 6px; font-weight: 800; cursor: pointer; min-width: 36px; text-align: center; transition: all 0.25s; margin-left: 10px; } .kb-box:hover { background: rgba(36, 233, 255, 0.2); transform: scale(1.05); } .kb-box.waiting { color: #ffcc00; border-color: #ffcc00; background: rgba(255, 204, 0, 0.15); animation: pulse 1.5s infinite; } @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); } 70% { box-shadow: 0 0 0 8px rgba(255,204,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); } } .p-sel-container { margin-top: 18px; } .p-sel-header { background: rgba(20, 30, 45, 0.8); border: 1px solid rgba(36, 233, 255, 0.2); padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.25s; } .p-sel-header:hover { border-color: var(--color-accent); background: rgba(30, 45, 65, 0.9); } .p-sel-header svg { transition: transform 0.3s; } .p-sel-header.active svg { transform: rotate(180deg); } .p-sel-dropdown { position: absolute; top: 100%; left: 0; width: 100%; background: #0f1a28; border: 1px solid var(--color-border); border-top: none; border-radius: 0 0 10px 10px; display: none; z-index: 20; max-height: 200px; overflow-y: auto; margin-top: 2px; } .p-sel-item { padding: 10px 16px; font-size: 13px; cursor: pointer; color: var(--color-text); transition: all 0.2s; border-left: 3px solid transparent; } .p-sel-item:hover { background: rgba(36, 233, 255, 0.1); color: var(--color-text-bright); border-left-color: var(--color-accent); } .p-sel-item.active { background: rgba(36, 233, 255, 0.15); color: var(--color-accent); font-weight: 600; border-left-color: var(--color-accent); } .slider-container { margin-top: 15px; } .slider-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; color: rgba(180, 230, 255, 0.85); } .slider-label span:last-child { color: var(--color-accent); font-weight: 800; } .p-slider-track { position: relative; height: 5px; background: rgba(255,255,255,0.08); border-radius: 10px; margin-top: 5px; cursor: pointer; transition: height 0.2s; } .p-slider-track:hover { height: 7px; } .p-slider-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(--color-accent); border-radius: 10px; box-shadow: 0 0 10px rgba(36, 233, 255, 0.5); } .p-slider-thumb { position: absolute; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; background: var(--color-accent); border-radius: 50%; border: 3px solid #0a1a2a; box-shadow: 0 0 12px rgba(36, 233, 255, 0.7); cursor: grab; } .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 15px; } .info-card { background: rgba(15, 25, 40, 0.85); border: 1px solid rgba(36, 233, 255, 0.2); border-radius: 14px; padding: 20px; transition: transform 0.3s; } .info-card:hover { transform: translateY(-3px); border-color: rgba(36, 233, 255, 0.4); } .info-title { font-size: 10px; color: rgba(130, 220, 255, 0.8); text-transform: uppercase; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; } .info-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.1); } .info-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; } .info-label { opacity: 0.7; } .info-value { color: var(--color-accent); font-weight: 700; padding: 2px 8px; background: rgba(36, 233, 255, 0.1); border-radius: 4px; } .contacts-grid { display: flex; justify-content: space-around; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(36, 233, 255, 0.2); } .contact-item { text-align: center; } .contact-role { font-size: 10px; opacity: 0.6; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px; font-weight: 700; } .contact-name { color: var(--color-accent); font-weight: 800; font-size: 15px; background: rgba(36, 233, 255, 0.15); padding: 5px 15px; border-radius: 20px; display: inline-block; min-width: 100px; } .always-on-badge { background: rgba(0, 255, 136, 0.15); color: #00ff88; border: 1px solid rgba(0, 255, 136, 0.4); padding: 2px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; } .building-type { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.06); } .building-type:last-child { border-bottom: none; } .panel-glow { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(36, 233, 255, 0.15) 0%, transparent 70%); animation: rotateGlow 15s linear infinite; z-index: -1; opacity: 0.7; } @keyframes rotateGlow { to { transform: rotate(360deg); } } .craft-category { margin-bottom: 20px; } .craft-category-title { font-size: 13px; font-weight: 700; color: var(--color-accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; } .craft-buttons-row { display: flex; flex-wrap: wrap; gap: 8px; } .craft-type-btn { background: rgba(36, 233, 255, 0.1); border: 1px solid rgba(36, 233, 255, 0.3); color: var(--color-text); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.25s; } .craft-type-btn:hover { background: rgba(36, 233, 255, 0.2); border-color: var(--color-accent); color: var(--color-text-bright); } .craft-type-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: #0a1a2a; box-shadow: 0 0 12px rgba(36, 233, 255, 0.5); } @media (max-width: 800px) { .premium-panel { width: 95%; height: 95%; } .info-grid { grid-template-columns: 1fr; } }`;
 
 // ────────────────────────────────────────────────
-//  HTML МЕНЮ (ОРИГИНАЛЬНЫЕ ИКОНКИ + AUTOCRAFT ОТДЕЛЬНОЙ ВКАДКОЙ)
+//  HTML МЕНЮ (ОРИГИНАЛЬНЫЕ ИКОНКИ ИЗ CORE (2).JS)
 // ────────────────────────────────────────────────
 const menuHtml = `
 <div class="premium-panel interium-menu-container">
 <div class="panel-glow"></div>
 <div class="p-header">
-<div class="p-logo">INTERIUM.CC <span>v14.0.2</span></div>
+<div class="p-logo">INTERIUM.CC <span>v13.0.2</span></div>
 <div style="font-size:11px;opacity:0.6;">Absolute Phantom</div>
 </div>
 <div class="p-main">
@@ -872,10 +845,6 @@ Visuals
 <div class="p-tab" data-tab="tab-building">
 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3zm5 15h-2v-6H9v6H7v-7.81l5-4.5 5 4.5V18z"/></svg>
 Building
-</div>
-<div class="p-tab" data-tab="tab-autocraft">
-<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 8h-1V3H6v5H5c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-9c0-1.1-.9-2-2-2zM8 5h8v3H8V5zm8 12v2H8v-4h8v2zm2-2v-2H6v2H4v-6h16v6h-2z"/></svg>
-AutoCraft
 </div>
 <div class="p-tab" data-tab="tab-misc">
 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
@@ -1016,6 +985,34 @@ Info
 </div>
 <div class="p-content-tab" id="tab-building">
 <div class="p-groupbox">
+<div class="p-groupbox-title">🔨 AutoCraft System</div>
+<div class="p-opt">
+<div class="p-opt-title">
+<div class="p-opt-main">Enable AutoCraft</div>
+<div class="p-opt-desc">Toggle to start/stop auto crafting</div>
+</div>
+<div class="p-switch" data-feature="autoCraft"><div class="p-switch-handle"></div></div>
+</div>
+<div class="craft-category">
+<div class="craft-category-title">🛡️ Shields</div>
+<div class="craft-buttons-row">
+<button class="craft-type-btn" data-type="shield_wood">Wood</button>
+<button class="craft-type-btn" data-type="shield_stone">Stone</button>
+<button class="craft-type-btn" data-type="shield_gold">Gold</button>
+<button class="craft-type-btn" data-type="shield_diamond">Diamond</button>
+<button class="craft-type-btn" data-type="shield_adamant">Adamant</button>
+</div>
+</div>
+<div class="craft-category">
+<div class="craft-category-title">🏹 Ammunition</div>
+<div class="craft-buttons-row">
+<button class="craft-type-btn" data-type="ammo_bullet">Bullet</button>
+<button class="craft-type-btn" data-type="ammo_bolt">Bolt</button>
+<button class="craft-type-btn" data-type="ammo_arrow">Arrow</button>
+</div>
+</div>
+</div>
+<div class="p-groupbox">
 <div class="p-groupbox-title">🏗️ Block Selector</div>
 <div class="p-opt">
 <div class="p-opt-title">
@@ -1093,39 +1090,6 @@ Info
 </div>
 </div>
 </div>
-<div class="p-content-tab" id="tab-autocraft">
-<div class="p-groupbox">
-<div class="p-groupbox-title">🔨 AutoCraft System</div>
-<div class="p-opt">
-<div class="p-opt-title">
-<div class="p-opt-main">Enable AutoCraft</div>
-<div class="p-opt-desc">Automatically craft items continuously</div>
-</div>
-<div style="display:flex;align-items:center;">
-<div class="kb-box" data-feature="autoCraft">None</div>
-<div class="p-switch" data-feature="autoCraft"><div class="p-switch-handle"></div></div>
-</div>
-</div>
-<div class="craft-category">
-<div class="craft-category-title">🛡️ Shields</div>
-<div class="craft-buttons-row">
-<button class="craft-type-btn" data-type="shield_wood">Wood</button>
-<button class="craft-type-btn" data-type="shield_stone">Stone</button>
-<button class="craft-type-btn" data-type="shield_gold">Gold</button>
-<button class="craft-type-btn" data-type="shield_diamond">Diamond</button>
-<button class="craft-type-btn" data-type="shield_adamant">Adamant</button>
-</div>
-</div>
-<div class="craft-category">
-<div class="craft-category-title">🏹 Ammunition</div>
-<div class="craft-buttons-row">
-<button class="craft-type-btn" data-type="ammo_bullet">Bullet</button>
-<button class="craft-type-btn" data-type="ammo_bolt">Bolt</button>
-<button class="craft-type-btn" data-type="ammo_arrow">Arrow</button>
-</div>
-</div>
-</div>
-</div>
 <div class="p-content-tab" id="tab-misc">
 <div class="p-groupbox">
 <div class="p-groupbox-title">🎮 Gameplay</div>
@@ -1171,8 +1135,8 @@ Info
 <div class="info-grid">
 <div class="info-card">
 <div class="info-title">⚙️ Build Version</div>
-<div class="info-row"><span class="info-label">Version</span><span class="info-value">v14.0.2</span></div>
-<div class="info-row"><span class="info-label">Last Update</span><span class="info-value">Mar 8, 2026</span></div>
+<div class="info-row"><span class="info-label">Version</span><span class="info-value">v13.0.2</span></div>
+<div class="info-row"><span class="info-label">Last Update</span><span class="info-value">Feb 1, 2026</span></div>
 <div class="info-row"><span class="info-label">Client Status</span><span class="info-value">Active</span></div>
 </div>
 <div class="info-card">
@@ -1384,12 +1348,14 @@ showNotification(`AimBot mode set to ${value === 'auto' ? 'Auto' : 'Custom'}`, '
 });
 });
 
-// ✅ AUTOCRAFT TYPE BUTTONS
+// ✅ AUTOCRAFT TYPE BUTTONS - ИСПРАВЛЕНО: ПОДСВЕТКА ВЫБОРА
 document.querySelectorAll('.craft-type-btn').forEach(btn => {
 btn.addEventListener('click', () => {
 const type = btn.dataset.type;
 setAutoCraftType(type);
+// Убираем active у всех кнопок
 document.querySelectorAll('.craft-type-btn').forEach(b => b.classList.remove('active'));
+// Добавляем active нажатой кнопке
 btn.classList.add('active');
 showNotification(`AutoCraft type: ${type}`, 'info');
 });
@@ -1452,6 +1418,7 @@ initSlider('spam-speed-slider', 'spam-speed-val', 50, 500, 10, v => features.cla
 
 setupBindListeners();
 
+// ✅ ПЕРЕКЛЮЧАТЕЛИ ФИЧ
 document.querySelectorAll('.p-switch[data-feature]').forEach(switchEl => {
 const featureKey = switchEl.dataset.feature;
 const kbBox = switchEl.parentElement.querySelector(`.kb-box[data-feature="${featureKey}"]`);
@@ -1463,8 +1430,12 @@ switchEl.addEventListener('click', () => {
 const newState = !switchEl.classList.contains('active');
 switchEl.classList.toggle('active', newState);
 features[featureKey].enabled = newState;
+// ✅ AUTOCRAFT: ТОЛЬКО ОТ ТУМБЛЕРА, БЕЗ БИНДА
+if (featureKey === 'autoCraft') {
+autoCraftEnabled = newState;
+toggleAutoCraft();
+}
 if (featureKey === 'clanspam') newState ? startClanSpam() : stopClanSpam();
-if (featureKey === 'autoCraft') toggleAutoCraft();
 if (featureKey === 'showfps') fpsEl.style.display = newState ? 'block' : 'none';
 if (featureKey === 'crosshair') document.body.classList.toggle('crosshair-cursor', newState);
 showNotification(`${features[featureKey].name} ${newState ? 'enabled' : 'disabled'}`, newState ? 'enabled' : 'disabled');
@@ -1514,13 +1485,12 @@ document.addEventListener('click', handleOutsideClick);
 }
 Object.entries(features).forEach(([key, config]) => {
 if (config.bind && e.code === config.bind && !e.repeat && !panel.classList.contains('show')) {
-if (['fastrespawn', 'fullbright'].includes(key)) return;
+if (['fastrespawn', 'fullbright', 'autoCraft'].includes(key)) return;
 if (key === 'blockSelector') return selectNextBlock();
 if (key === 'wallSelector') return selectNextWall();
 if (key === 'turretSelector') return selectNextTurret();
 if (key === 'trapSelector') return selectNextTrap();
 if (key === 'boosterSelector') return selectNextBooster();
-if (key === 'autoCraft') return toggleAutoCraft();
 config.enabled = !config.enabled;
 const switchEl = document.querySelector(`.p-switch[data-feature="${key}"]`);
 if (switchEl) switchEl.classList.toggle('active', config.enabled);
@@ -1566,6 +1536,7 @@ aimModeVal.textContent = 'Auto';
 fpsEl.style.display = features.showfps.enabled ? 'block' : 'none';
 document.body.classList.toggle('crosshair-cursor', features.crosshair.enabled);
 if (features.clanspam.enabled) startClanSpam();
+// ✅ AUTOCRAFT: ПОДСВЕТКА ВЫБРАННОГО ТИПА
 if (autoCraftEnabled) {
 const activeBtn = document.querySelector(`.craft-type-btn[data-type="${autoCraftType}"]`);
 if (activeBtn) activeBtn.classList.add('active');
@@ -1581,7 +1552,7 @@ if (el && item.enabled) el.classList.add('active');
 };
 
 // ────────────────────────────────────────────────
-//  ✅ ЗАПУСК ПРИЛОЖЕНИЯ
+//  ✅ ЗАПУСК
 // ────────────────────────────────────────────────
 if (document.readyState === 'loading') {
 document.addEventListener('DOMContentLoaded', () => {
