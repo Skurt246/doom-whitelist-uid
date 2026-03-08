@@ -121,8 +121,9 @@ return false;
 };
 
 // ────────────────────────────────────────────────
-//  ✅ ЛОББИ
+//  ✅ ЛОББИ (ФИКС ДВОЕНИЯ ЛОГОТИПА)
 // ────────────────────────────────────────────────
+let logoCreated = false;
 const applyLobbyInstant = () => {
 const observer = new MutationObserver((mutations) => {
 for (const mut of mutations) {
@@ -169,6 +170,8 @@ if (el) el.style.display = 'none';
 };
 
 const createLogo = () => {
+// ✅ ФИКС: НЕ СОЗДАВАТЬ ЛОГО ПОВТОРНО
+if (logoCreated) return;
 const title = document.getElementById('title');
 if (title) title.style.display = 'none';
 const logo = document.createElement('div');
@@ -180,6 +183,7 @@ anim.textContent = `.letter { opacity:0; display:inline-block; animation:fadeInL
 document.head.appendChild(anim);
 const container = document.getElementById('main-page');
 if (container) container.prepend(logo);
+logoCreated = true;
 };
 
 const styleUsernameInput = () => {
@@ -382,26 +386,24 @@ return false;
 };
 
 // ────────────────────────────────────────────────
-//  ✅ AUTO CRAFT - ПОЛНОСТЬЮ ПЕРЕПИСАНО
+//  ✅ AUTO CRAFT (РАБОЧИЙ)
 // ────────────────────────────────────────────────
 let autoCraftEnabled = false;
 let autoCraftActive = false;
 let autoCraftFrameId = null;
 let autoCraftType = 'shield_wood';
 
-// Список предметов для крафта с правильными item-id
 const autoCraftItems = {
-shield_wood: 'shield_wood',
+shield_adamant: 'shield_adamant',
 shield_stone: 'shield_stone',
 shield_gold: 'shield_gold',
 shield_diamond: 'shield_diamond',
-shield_adamant: 'shield_adamant',
+shield_wood: 'shield_wood',
 ammo_bullet: 'ammo_bullet',
 ammo_bolt: 'ammo_bolt',
 ammo_arrow: 'ammo_arrow'
 };
 
-// Красивые названия для отображения
 const autoCraftNames = {
 shield_wood: '🛡️ Wood Shield',
 shield_stone: '🛡️ Stone Shield',
@@ -413,7 +415,8 @@ ammo_bolt: '🏹 Bolt',
 ammo_arrow: '🏹 Arrow'
 };
 
-// Функция клика по рецепту
+const autoCraftClicksPerFrame = 500;
+
 function simulateAutoCraftClick() {
 const itemId = autoCraftItems[autoCraftType];
 const el = document.querySelector(`.recipe_image_container[item-id="${itemId}"]`);
@@ -425,27 +428,23 @@ view: window
 }));
 }
 
-// Основной цикл крафта (requestAnimationFrame)
 function autoCraftLoop() {
 if (!autoCraftActive) return;
-// 500 кликов за кадр для быстрой скорости
-for (let i = 0; i < 500; i++) simulateAutoCraftClick();
+for (let i = 0; i < autoCraftClicksPerFrame; i++) simulateAutoCraftClick();
 autoCraftFrameId = requestAnimationFrame(autoCraftLoop);
 }
 
-// Включение/выключение автокрафта (только от тумблера)
 function toggleAutoCraft() {
 autoCraftActive = !autoCraftActive;
 if (autoCraftActive && autoCraftEnabled) {
 autoCraftFrameId = requestAnimationFrame(autoCraftLoop);
-showNotification(`Auto-Craft: ${autoCraftNames[autoCraftType]} ON`, 'enabled');
+showNotification(`Auto-Craft (${autoCraftNames[autoCraftType]}) ON`, 'enabled');
 } else {
 if (autoCraftFrameId) cancelAnimationFrame(autoCraftFrameId);
 showNotification('Auto-Craft OFF', 'disabled');
 }
 }
 
-// Выбор типа крафта (обновление кнопки и сохранение)
 function setAutoCraftType(type) {
 autoCraftType = type;
 saveSettings();
@@ -462,7 +461,7 @@ const features = {
 aimbot: { enabled: false, bind: null, predictionMode: 'auto', latencyComp: 0.05, velocityBoost: 1.0, overshoot: 0.4, falloffFactor: 1.0, ignoreClan: true, name: "AimBot " },
 triggerbot: { enabled: false, bind: null, minDist: 0.5, maxDist: 2.8, fireDelay: 60, name: "TriggerBot " },
 arrows: { enabled: false, bind: null, ignoreTeam: true, name: "Holo Arrows " },
-fullbright: { enabled: true, bind: null, name: "FullBright " },
+fullbright: { enabled: true, bind: null, name: "FullBright " }, // ✅ ALWAYS ON
 crosshair: { enabled: false, bind: null, name: "Crosshair " },
 fastrespawn: { enabled: true, bind: null, name: "Fast Respawn " },
 showfps: { enabled: true, bind: null, name: "Show FPS " },
@@ -533,10 +532,9 @@ return rawSetTimeout(cb, ms, ...args);
 };
 
 // ────────────────────────────────────────────────
-//  ✅ FULLBRIGHT
+//  ✅ FULLBRIGHT (ALWAYS ON - БЕЗ ТУМБЛЕРА)
 // ────────────────────────────────────────────────
 const fullBright = () => {
-if (!features.fullbright.enabled) return;
 if (!window.PIXI_APP || !window.PIXI_APP.stage) return;
 const nightLayer = window.PIXI_APP.stage.children.find(c => c.name === "Night Lights");
 if (nightLayer) {
@@ -550,7 +548,7 @@ f.uniforms.maxOpacity.value = 0;
 }
 }
 };
-setInterval(fullBright, 800);
+setInterval(fullBright, 800); // ✅ РАБОТАЕТ СРАЗУ ПРИ ЗАГРУЗКЕ
 
 // ────────────────────────────────────────────────
 //  ✅ FPS COUNTER
@@ -834,12 +832,12 @@ button: 0, clientX: screenX, clientY: screenY, bubbles: true
 }
 
 // ────────────────────────────────────────────────
-//  СТИЛИ МЕНЮ
+//  СТИЛИ МЕНЮ (ОРИГИНАЛЬНЫЕ)
 // ────────────────────────────────────────────────
 const newMenuStyles = `@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Orbitron:wght@700&display=swap'); :root { --font-main: 'Montserrat', sans-serif; --font-logo: 'Orbitron', sans-serif; --color-text: rgba(255, 255, 255, 0.7); --color-text-bright: #fff; --color-border: rgba(255, 255, 255, 0.1); --color-accent: #24e9ff; --panel-bg: rgba(10, 10, 12, 0.98); --switch-off: rgba(255,255,255,0.05); --switch-on: #24e9ff; } .premium-panel { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 780px; height: 620px; background: var(--panel-bg); backdrop-filter: blur(20px); border-radius: 16px; box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 30px rgba(36, 233, 255, 0.25); border: 1px solid var(--color-border); border-image: linear-gradient(to bottom, transparent, var(--color-accent), transparent) 1; flex-direction: column; font-family: var(--font-main); color: var(--color-text); z-index: 999999; overflow: hidden; transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0; } .premium-panel.show { opacity: 1; transform: translate(-50%, -50%) scale(1); } .p-header { padding: 22px 28px; border-bottom: 1px solid var(--color-border); cursor: grab; user-select: none; background: linear-gradient(90deg, rgba(0,0,0,0.4) 0%, rgba(36,233,255,0.08) 100%); display: flex; align-items: center; justify-content: space-between; } .p-logo { font-family: var(--font-logo); font-size: 26px; background: linear-gradient(90deg, #36ddff, #24e9ff, #00aaff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px; font-weight: 800; text-shadow: 0 0 15px rgba(36, 233, 255, 0.5); } .p-logo span { font-weight: 400; font-family: var(--font-main); font-size: 11px; opacity: 0.5; text-transform: uppercase; letter-spacing: 3px; margin-left: 12px; background: none; -webkit-text-fill-color: var(--color-text); } .p-main { display: flex; flex-grow: 1; overflow: hidden; height: calc(100% - 75px); } .p-sidebar { width: 220px; border-right: 1px solid var(--color-border); background: rgba(0,0,0,0.2); display: flex; flex-direction: column; position: relative; } .p-footer { position: absolute; bottom: 0; left: 0; width: 100%; height: 95px; padding: 0 18px; border-top: 1px solid rgba(36,233,255,0.2); background: rgba(5, 15, 25, 0.92); display: flex; align-items: center; gap: 14px; box-sizing: border-box; box-shadow: 0 -5px 15px rgba(0,0,0,0.3); } .p-user-avatar { width: 42px; height: 42px; background: linear-gradient(135deg, #0a1a2a, #0d2538); border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--color-accent); flex-shrink: 0; box-shadow: 0 0 15px rgba(36, 233, 255, 0.3); } .p-user-avatar svg { width: 22px; height: 22px; fill: var(--color-accent); } .p-user-details { font-size: 12px; line-height: 1.4; } .username-f { font-weight: 800; color: var(--color-accent); font-size: 14px !important; opacity: 1 !important; margin-bottom: 3px; letter-spacing: 0.5px; } .p-tab { display: flex; align-items: center; gap: 14px; padding: 15px 26px; cursor: pointer; color: var(--color-text); font-size: 14px; font-weight: 600; transition: all 0.25s ease; border-left: 3px solid transparent; position: relative; } .p-tab svg { width: 18px; height: 18px; opacity: 0.6; flex-shrink: 0; transition: all 0.3s; } .p-tab:hover { background: rgba(255,255,255,0.04); color: var(--color-text-bright); } .p-tab:hover svg { opacity: 0.9; transform: scale(1.05); } .p-tab.active { color: var(--color-text-bright); background: rgba(36, 233, 255, 0.12); border-left-color: var(--color-accent); } .p-tab.active svg { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 8px var(--color-accent)); } .p-content { flex-grow: 1; padding: 28px; overflow-y: auto; position: relative; } .p-content-tab { display: none; animation: slideIn 0.35s ease-out; } .p-content-tab.active { display: block; } @keyframes slideIn { from { opacity: 0; transform: translateX(15px); } to { opacity: 1; transform: translateX(0); } } .p-groupbox { background: rgba(15, 25, 40, 0.7); border: 1px solid rgba(36, 233, 255, 0.15); border-radius: 14px; padding: 22px; margin-bottom: 24px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25); transition: transform 0.3s ease, box-shadow 0.3s ease; } .p-groupbox:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 15px rgba(36, 233, 255, 0.1); border-color: rgba(36, 233, 255, 0.3); } .p-groupbox-title { font-size: 12px; font-weight: 800; color: rgba(130, 220, 255, 0.85); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1.8px; display: flex; align-items: center; gap: 8px; } .p-groupbox-title::before { content: ""; width: 4px; height: 16px; background: var(--color-accent); border-radius: 2px; display: inline-block; } .p-opt { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 0.2s; } .p-opt:last-child { border-bottom: none; } .p-opt:hover { background: rgba(255,255,255,0.03); border-radius: 8px; } .p-opt-title { display: flex; flex-direction: column; } .p-opt-main { font-weight: 600; color: var(--color-text-bright); margin-bottom: 2px; } .p-opt-desc { font-size: 11px; opacity: 0.65; } .p-switch { width: 48px; height: 24px; background: var(--switch-off); border-radius: 20px; cursor: pointer; position: relative; border: 1.5px solid rgba(255,255,255,0.15); transition: all 0.3s ease; display: flex; align-items: center; } .p-switch.active { background: var(--color-accent); box-shadow: 0 0 15px rgba(36, 233, 255, 0.4); border-color: var(--color-accent); } .p-switch-handle { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: all 0.3s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.3); } .p-switch.active .p-switch-handle { transform: translateX(24px); background: #0a1a2a; } .kb-box { font-size: 11px; color: var(--color-accent); background: rgba(36, 233, 255, 0.12); border: 1px solid rgba(36, 233, 255, 0.4); padding: 4px 10px; border-radius: 6px; font-weight: 800; cursor: pointer; min-width: 36px; text-align: center; transition: all 0.25s; margin-left: 10px; } .kb-box:hover { background: rgba(36, 233, 255, 0.2); transform: scale(1.05); } .kb-box.waiting { color: #ffcc00; border-color: #ffcc00; background: rgba(255, 204, 0, 0.15); animation: pulse 1.5s infinite; } @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); } 70% { box-shadow: 0 0 0 8px rgba(255,204,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); } } .p-sel-container { margin-top: 18px; } .p-sel-header { background: rgba(20, 30, 45, 0.8); border: 1px solid rgba(36, 233, 255, 0.2); padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.25s; } .p-sel-header:hover { border-color: var(--color-accent); background: rgba(30, 45, 65, 0.9); } .p-sel-header svg { transition: transform 0.3s; } .p-sel-header.active svg { transform: rotate(180deg); } .p-sel-dropdown { position: absolute; top: 100%; left: 0; width: 100%; background: #0f1a28; border: 1px solid var(--color-border); border-top: none; border-radius: 0 0 10px 10px; display: none; z-index: 20; max-height: 200px; overflow-y: auto; margin-top: 2px; } .p-sel-item { padding: 10px 16px; font-size: 13px; cursor: pointer; color: var(--color-text); transition: all 0.2s; border-left: 3px solid transparent; } .p-sel-item:hover { background: rgba(36, 233, 255, 0.1); color: var(--color-text-bright); border-left-color: var(--color-accent); } .p-sel-item.active { background: rgba(36, 233, 255, 0.15); color: var(--color-accent); font-weight: 600; border-left-color: var(--color-accent); } .slider-container { margin-top: 15px; } .slider-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; color: rgba(180, 230, 255, 0.85); } .slider-label span:last-child { color: var(--color-accent); font-weight: 800; } .p-slider-track { position: relative; height: 5px; background: rgba(255,255,255,0.08); border-radius: 10px; margin-top: 5px; cursor: pointer; transition: height 0.2s; } .p-slider-track:hover { height: 7px; } .p-slider-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(--color-accent); border-radius: 10px; box-shadow: 0 0 10px rgba(36, 233, 255, 0.5); } .p-slider-thumb { position: absolute; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; background: var(--color-accent); border-radius: 50%; border: 3px solid #0a1a2a; box-shadow: 0 0 12px rgba(36, 233, 255, 0.7); cursor: grab; } .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 15px; } .info-card { background: rgba(15, 25, 40, 0.85); border: 1px solid rgba(36, 233, 255, 0.2); border-radius: 14px; padding: 20px; transition: transform 0.3s; } .info-card:hover { transform: translateY(-3px); border-color: rgba(36, 233, 255, 0.4); } .info-title { font-size: 10px; color: rgba(130, 220, 255, 0.8); text-transform: uppercase; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; } .info-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.1); } .info-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; } .info-label { opacity: 0.7; } .info-value { color: var(--color-accent); font-weight: 700; padding: 2px 8px; background: rgba(36, 233, 255, 0.1); border-radius: 4px; } .contacts-grid { display: flex; justify-content: space-around; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(36, 233, 255, 0.2); } .contact-item { text-align: center; } .contact-role { font-size: 10px; opacity: 0.6; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px; font-weight: 700; } .contact-name { color: var(--color-accent); font-weight: 800; font-size: 15px; background: rgba(36, 233, 255, 0.15); padding: 5px 15px; border-radius: 20px; display: inline-block; min-width: 100px; } .always-on-badge { background: rgba(0, 255, 136, 0.15); color: #00ff88; border: 1px solid rgba(0, 255, 136, 0.4); padding: 2px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; } .building-type { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.06); } .building-type:last-child { border-bottom: none; } .panel-glow { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(36, 233, 255, 0.15) 0%, transparent 70%); animation: rotateGlow 15s linear infinite; z-index: -1; opacity: 0.7; } @keyframes rotateGlow { to { transform: rotate(360deg); } } .autocraft-section { margin-bottom: 20px; } .autocraft-section-title { font-size: 13px; font-weight: 700; color: var(--color-accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; } .autocraft-section-title::before { content: ""; width: 4px; height: 16px; background: var(--color-accent); border-radius: 2px; display: inline-block; } .autocraft-buttons { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; } .autocraft-btn { background: rgba(36, 233, 255, 0.08); border: 1px solid rgba(36, 233, 255, 0.2); color: var(--color-text); padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s; text-align: left; display: flex; align-items: center; gap: 10px; } .autocraft-btn:hover { background: rgba(36, 233, 255, 0.15); border-color: var(--color-accent); color: var(--color-text-bright); transform: translateY(-2px); } .autocraft-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: #0a1a2a; box-shadow: 0 0 20px rgba(36, 233, 255, 0.5); transform: translateY(-2px); } .autocraft-status { margin-top: 15px; padding: 12px 16px; background: rgba(36, 233, 255, 0.08); border: 1px solid rgba(36, 233, 255, 0.2); border-radius: 10px; font-size: 13px; color: var(--color-text); display: flex; align-items: center; gap: 10px; } .autocraft-status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ff4444; box-shadow: 0 0 10px #ff4444; transition: all 0.3s; } .autocraft-status-dot.active { background: #00ff88; box-shadow: 0 0 10px #00ff88; } @media (max-width: 800px) { .premium-panel { width: 95%; height: 95%; } .info-grid { grid-template-columns: 1fr; } }`;
 
 // ────────────────────────────────────────────────
-//  HTML МЕНЮ - AUTOCRAFT ВКАДКА
+//  HTML МЕНЮ (FULLBRIGHT - ALWAYS ON, БЕЗ ТУМБЛЕРА)
 // ────────────────────────────────────────────────
 const menuHtml = `
 <div class="premium-panel interium-menu-container">
@@ -989,7 +987,7 @@ Info
 <div class="p-opt-main">FullBright</div>
 <div class="p-opt-desc">Disable darkness/night overlay</div>
 </div>
-<div class="p-switch" data-feature="fullbright"><div class="p-switch-handle"></div></div>
+<div class="always-on-badge">Always ON</div>
 </div>
 <div class="p-opt">
 <div class="p-opt-title">
@@ -1129,17 +1127,14 @@ Info
 <div class="p-opt-main">Fast Respawn</div>
 <div class="p-opt-desc">Instant respawn after death</div>
 </div>
-<div class="p-switch" data-feature="fastrespawn"><div class="p-switch-handle"></div></div>
+<div class="always-on-badge">Always ON</div>
 </div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Show FPS</div>
 <div class="p-opt-desc">Display frames per second counter</div>
 </div>
-<div style="display:flex;align-items:center;">
-<div class="kb-box" data-feature="showfps">None</div>
-<div class="p-switch" data-feature="showfps"><div class="p-switch-handle"></div></div>
-</div>
+<div class="always-on-badge">Always ON</div>
 </div>
 </div>
 <div class="p-groupbox">
@@ -1379,22 +1374,18 @@ showNotification(`AimBot mode set to ${value === 'auto' ? 'Auto' : 'Custom'}`, '
 });
 });
 
-// ✅ AUTOCRAFT КНОПКИ - БЕЗ БИНДА, ТОЛЬКО ВЫБОР
+// ✅ AUTOCRAFT КНОПКИ
 document.querySelectorAll('.autocraft-btn').forEach(btn => {
 btn.addEventListener('click', () => {
 const type = btn.dataset.type;
 setAutoCraftType(type);
-// Убираем active у всех кнопок
 document.querySelectorAll('.autocraft-btn').forEach(b => b.classList.remove('active'));
-// Добавляем active нажатой кнопке
 btn.classList.add('active');
-// Обновляем статус
 updateAutoCraftStatus();
 showNotification(`AutoCraft: ${autoCraftNames[type]}`, 'info');
 });
 });
 
-// Обновление статуса AutoCraft
 function updateAutoCraftStatus() {
 const statusDot = document.getElementById('autocraft-status-dot');
 const statusText = document.getElementById('autocraft-status-text');
@@ -1470,7 +1461,7 @@ initSlider('spam-speed-slider', 'spam-speed-val', 50, 500, 10, v => features.cla
 
 setupBindListeners();
 
-// ✅ ПЕРЕКЛЮЧАТЕЛИ ФИЧ
+// ✅ ПЕРЕКЛЮЧАТЕЛИ ФИЧ (БЕЗ FULLBRIGHT)
 document.querySelectorAll('.p-switch[data-feature]').forEach(switchEl => {
 const featureKey = switchEl.dataset.feature;
 const kbBox = switchEl.parentElement.querySelector(`.kb-box[data-feature="${featureKey}"]`);
@@ -1482,7 +1473,7 @@ switchEl.addEventListener('click', () => {
 const newState = !switchEl.classList.contains('active');
 switchEl.classList.toggle('active', newState);
 features[featureKey].enabled = newState;
-// ✅ AUTOCRAFT: ТОЛЬКО ОТ ТУМБЛЕРА, БЕЗ БИНДА
+// ✅ AUTOCRAFT: ТОЛЬКО ОТ ТУМБЛЕРА
 if (featureKey === 'autoCraft') {
 autoCraftEnabled = newState;
 toggleAutoCraft();
@@ -1538,12 +1529,13 @@ document.addEventListener('click', handleOutsideClick);
 }
 Object.entries(features).forEach(([key, config]) => {
 if (config.bind && e.code === config.bind && !e.repeat && !panel.classList.contains('show')) {
-if (['fastrespawn', 'fullbright', 'autoCraft'].includes(key)) return;
+if (['fastrespawn', 'fullbright'].includes(key)) return;
 if (key === 'blockSelector') return selectNextBlock();
 if (key === 'wallSelector') return selectNextWall();
 if (key === 'turretSelector') return selectNextTurret();
 if (key === 'trapSelector') return selectNextTrap();
 if (key === 'boosterSelector') return selectNextBooster();
+if (key === 'autoCraft') return toggleAutoCraft();
 config.enabled = !config.enabled;
 const switchEl = document.querySelector(`.p-switch[data-feature="${key}"]`);
 if (switchEl) switchEl.classList.toggle('active', config.enabled);
@@ -1589,7 +1581,6 @@ aimModeVal.textContent = 'Auto';
 fpsEl.style.display = features.showfps.enabled ? 'block' : 'none';
 document.body.classList.toggle('crosshair-cursor', features.crosshair.enabled);
 if (features.clanspam.enabled) startClanSpam();
-// ✅ AUTOCRAFT: ПОДСВЕТКА ВЫБРАННОГО ТИПА
 if (autoCraftEnabled) {
 const activeBtn = document.querySelector(`.autocraft-btn[data-type="${autoCraftType}"]`);
 if (activeBtn) activeBtn.classList.add('active');
@@ -1646,6 +1637,6 @@ requestAnimationFrame(mainLoop);
 }
 
 requestAnimationFrame(mainLoop);
-if (features.fullbright.enabled) fullBright();
+if (features.fullbright.enabled) fullBright(); // ✅ FULLBRIGHT РАБОТАЕТ СРАЗУ
 loadSettings();
 })();
