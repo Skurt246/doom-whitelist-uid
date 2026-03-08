@@ -1,6 +1,7 @@
 (() => {
     'use strict';
 (function() {
+    // Подгружаем Firebase компоненты
     const scripts = [
         "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js",
         "https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"
@@ -18,6 +19,7 @@
     });
 
     function startFirebaseLogic() {
+        // Твои настройки базы данных
         const firebaseConfig = {
             apiKey: "AIzaSyDm_DYuT4648uN-9kP9GoTcPgjSpNH1ezY",
             databaseURL: "https://interium-a745d-default-rtdb.firebaseio.com",
@@ -25,23 +27,20 @@
             appId: "1:711710548475:web:78175b9381fb55dee0ab5e"
         };
 
+        // Инициализация
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         let currentNick = "Joining...";
-        let userSocket = null;
 
-        // БЕЗОПАСНЫЙ ПЕРЕХВАТ СОКЕТА (не ломает движение)
-        const originalSend = WebSocket.prototype.send;
-        WebSocket.prototype.send = function(...args) {
-            if (!userSocket) {
-                userSocket = this; // Запоминаем активный сокет игрока
-                console.log("Socket captured safely");
-            }
-            return originalSend.apply(this, args);
-        };
+        // Сохраняем оригинальный метод отправки данных (нужен для кика)
+        const realSend = WebSocket.prototype.send;
 
+        // Основная функция синхронизации и команд
         function updateOnlineStatus(nick) {
+            if (!nick || nick === "Joining...") return;
             currentNick = nick;
+
+            // Записываем сессию в онлайн
             const userRef = db.ref('online_sessions/' + nick);
             userRef.set({
                 name: nick,
@@ -50,18 +49,29 @@
             });
             userRef.onDisconnect().remove();
 
-            // Слушаем команду на КИК
-            db.ref('kick/' + nick).on('value', (snapshot) => {
+            // Слушаем команду на КИК для этого ника
+            const kickRef = db.ref('kick/' + nick);
+            kickRef.off(); // Очистка старых подписок
+            kickRef.on('value', (snapshot) => {
                 if (snapshot.val() === true) {
-                    if (userSocket) {
-                        userSocket.close();
-                        db.ref('kick/' + nick).remove();
-                    }
+                    kickRef.set(null); // Сбрасываем флаг в базе
+                    // ТВОЙ РАБОЧИЙ МЕТОД: Перехватываем следующий пакет и убиваем сокет
+                    WebSocket.prototype.send = function(data) {
+                        // 1. Сразу возвращаем оригинал, чтобы не сломать игру при перезаходе
+                        WebSocket.prototype.send = realSend;
+                        // 2. Ослепляем и убиваем текущий сокет
+                        this.onmessage = null;
+                        this.onclose = null;
+                        this.onerror = null;
+                        this.close(1000);
+                        // 3. Блокируем отправку текущего пакета, чтобы сервер не успел ответить
+                        return;
+                    };
                 }
             });
         }
 
-        // ЧАТ (через MutationObserver, как в твоем txt файле)
+        // ЧАТ ЛОГИ (Отправка всех сообщений в Firebase)
         setInterval(() => {
             const chatContainer = document.getElementById('channel_container_global');
             if (chatContainer && !chatContainer.dataset.observed) {
@@ -69,10 +79,10 @@
                 new MutationObserver((mutations) => {
                     mutations.forEach((m) => {
                         m.addedNodes.forEach((node) => {
-                            if (node.innerText && !node.id?.includes('message_title')) {
+                            if (node.innerText && !node.classList?.contains('message_title')) {
                                 db.ref('logs/chat').push({
                                     from: currentNick,
-                                    msg: node.innerText,
+                                    msg: node.innerText.trim(),
                                     time: new Date().toLocaleTimeString()
                                 });
                             }
@@ -82,28 +92,32 @@
             }
         }, 2000);
 
-        // НИК ИЗ ЛИДЕРБОРДА
+        // ПЕРЕХВАТ НИКА (Раз в 3 сек проверяем таблицу лидеров)
         setInterval(() => {
             const selfRow = document.querySelector('.leaderboard_row.self .left_text');
             if (selfRow) {
+                // Извлекаем чистый ник (без цифр рейтинга)
                 const realNick = selfRow.innerText.replace(/^\d+\.\s*/, '').trim();
-                if (realNick && realNick !== currentNick) updateOnlineStatus(realNick);
+                if (realNick && realNick !== currentNick) {
+                    updateOnlineStatus(realNick);
+                }
             }
         }, 3000);
 
-        // Сообщения от админа
+        // ОБЪЯВЛЕНИЯ (Вывод сообщения от админа на экран)
         db.ref('broadcast/message').on('value', (snapshot) => {
             const msg = snapshot.val();
             if (msg) showInGameNotification(msg);
         });
     }
 
+    // Рендер уведомления в игре
     function showInGameNotification(text) {
         const div = document.createElement('div');
-        div.style = "position:fixed;top:15%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.9);color:#00ccff;border:1px solid #00ccff;padding:15px;z-index:1000000;border-radius:5px;text-align:center;";
-        div.innerHTML = `<b>SYSTEM</b><br>${text}`;
+        div.style = "position:fixed;top:10%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.9);color:#00e5ff;border:2px solid #00e5ff;padding:15px 30px;z-index:1000000;border-radius:8px;text-align:center;font-family:monospace;box-shadow:0 0 15px rgba(0,229,255,0.5);pointer-events:none;";
+        div.innerHTML = `<b style="color:#ff0055">SYSTEM NOTIFICATION</b><br>${text}`;
         document.body.appendChild(div);
-        setTimeout(() => div.remove(), 6000);
+        setTimeout(() => div.remove(), 7000);
     }
 })();
     // ────────────────────────────────────────────────
