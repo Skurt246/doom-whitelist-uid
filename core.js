@@ -1614,14 +1614,14 @@ initMenu();
 //  CANVAS FINDER + MAIN LOOP
 // ────────────────────────────────────────────────
 function findCanvas() {
-gameCanvas = document.querySelector('canvas');
+    gameCanvas = document.querySelector('canvas');
 }
 setInterval(findCanvas, 800);
 
 function mainLoop() {
     findCanvas();
 
-    // ✅ ВОЗВРАЩАЕМ FULLBRIGHT (из core (2).js)
+    // ✅ FULLBRIGHT РАБОТАЕТ
     if (gameCanvas) {
         if (features.fullbright && features.fullbright.enabled) {
             gameCanvas.style.filter = 'brightness(2) contrast(1.1)'; 
@@ -1650,3 +1650,9 @@ function mainLoop() {
     }
     requestAnimationFrame(mainLoop);
 }
+
+// Запуск цикла
+requestAnimationFrame(mainLoop);
+
+// ✅ ЗАКРЫВАЕМ СКРИПТ (ЭТО ВАЖНО)
+})();
