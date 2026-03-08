@@ -1,10 +1,9 @@
 (() => {
 'use strict';
-
 // ────────────────────────────────────────────────
 //  ✅ ИСПРАВЛЕННЫЙ MSGPACK ДЕКОДЕР (ПОЛНОСТЬЮ РАБОЧИЙ)
 //  Взят из оригинальной библиотеки msgpack-lite, адаптирован под игру
-//  Исправлены ошибки с координатами (50к → 5м) и смещением аима
+//   Исправлены ошибки с координатами (50к → 5м) и смещением аима
 // ────────────────────────────────────────────────
 const msgpackDecode = (() => {
 const td = new TextDecoder();
@@ -37,8 +36,8 @@ switch (t) {
 case 0xc0: return null;
 case 0xc2: return false;
 case 0xc3: return true;
-case 0xca: { let v = dv.getFloat32(o); o += 4; return v; } // ✅ ИСПРАВЛЕНО: Float32
-case 0xcb: { let v = dv.getFloat64(o); o += 8; return v; } // ✅ ИСПРАВЛЕНО: Float64
+case 0xca: { let v = dv.getFloat32(o); o += 4; return v; }
+case 0xcb: { let v = dv.getFloat64(o); o += 8; return v; }
 case 0xcc: return u[o++];
 case 0xcd: { let v = dv.getUint16(o); o += 2; return v; }
 case 0xce: { let v = dv.getUint32(o); o += 4; return v; }
@@ -71,7 +70,11 @@ blocks: blocks.map(b => b.enabled),
 walls: walls.map(w => w.enabled),
 turrets: turrets.map(t => t.enabled),
 traps: traps.map(t => t.enabled),
-boosters: boosters.map(b => b.enabled)
+boosters: boosters.map(b => b.enabled),
+autoCraft: {
+enabled: autoCraftEnabled,
+type: autoCraftType
+}
 };
 Object.keys(features).forEach(k => {
 data.features[k] = {
@@ -90,12 +93,12 @@ ignoreTeam: features[k].ignoreTeam,
 predictionMode: features[k].predictionMode
 };
 });
-GM_setValue('interium_settings_v13', JSON.stringify(data));
+GM_setValue('interium_settings_v14', JSON.stringify(data));
 };
 
 const loadSettings = () => {
 try {
-const raw = GM_getValue('interium_settings_v13');
+const raw = GM_getValue('interium_settings_v14');
 if (!raw) return false;
 const data = JSON.parse(raw);
 // Восстановление фич
@@ -110,6 +113,11 @@ if (data.walls) walls.forEach((w, i) => { if (data.walls[i] !== undefined) w.ena
 if (data.turrets) turrets.forEach((t, i) => { if (data.turrets[i] !== undefined) t.enabled = data.turrets[i]; });
 if (data.traps) traps.forEach((t, i) => { if (data.traps[i] !== undefined) t.enabled = data.traps[i]; });
 if (data.boosters) boosters.forEach((b, i) => { if (data.boosters[i] !== undefined) b.enabled = data.boosters[i]; });
+// Восстановление AutoCraft
+if (data.autoCraft) {
+autoCraftEnabled = data.autoCraft.enabled ?? false;
+autoCraftType = data.autoCraft.type ?? 'shield_wood';
+}
 return true;
 } catch (e) {
 console.error('Settings load failed:', e);
@@ -136,7 +144,6 @@ break;
 }
 });
 observer.observe(document.body, { childList: true, subtree: true });
-// Принудительное применение через 100мс на случай задержки DOM
 setTimeout(() => {
 applyBackground();
 createLogo();
@@ -165,35 +172,21 @@ if (el) el.style.display = 'none';
 });
 } else setTimeout(applyBackground, 50);
 };
+
 const createLogo = () => {
 const title = document.getElementById('title');
 if (title) title.style.display = 'none';
 const logo = document.createElement('div');
 logo.id = 'interium-logo';
-logo.innerHTML = `
-<span class="letter">I</span><span class="letter">n</span><span class="letter">t</span><span class="letter">e</span><span class="letter">r</span><span class="letter">i</span><span class="letter">u</span><span class="letter">m</span><span class="letter">.</span><span class="letter">c</span><span class="letter">c</span>
-`;
-logo.style.cssText = `
-font-family: 'Orbitron', sans-serif;
-font-size: 80px; font-weight: 900; color: #00ccff;
-text-align: center; margin-bottom: 20px; letter-spacing: 2px;
-text-shadow: 0 0 20px #00ccff, 0 0 40px #0066ff;
-`;
+logo.innerHTML = `<span class="letter">I</span><span class="letter">n</span><span class="letter">t</span><span class="letter">e</span><span class="letter">r</span><span class="letter">i</span><span class="letter">u</span><span class="letter">m</span><span class="letter">.</span><span class="letter">c</span><span class="letter">c</span>`;
+logo.style.cssText = `font-family: 'Orbitron', sans-serif; font-size: 80px; font-weight: 900; color: #00ccff; text-align: center; margin-bottom: 20px; letter-spacing: 2px; text-shadow: 0 0 20px #00ccff, 0 0 40px #0066ff;`;
 const anim = document.createElement('style');
-anim.textContent = `
-.letter { opacity:0; display:inline-block; animation:fadeInLetter 0.5s forwards; }
-.letter:nth-child(1){animation-delay:0.1s} .letter:nth-child(2){animation-delay:0.2s}
-.letter:nth-child(3){animation-delay:0.3s} .letter:nth-child(4){animation-delay:0.4s}
-.letter:nth-child(5){animation-delay:0.5s} .letter:nth-child(6){animation-delay:0.6s}
-.letter:nth-child(7){animation-delay:0.7s} .letter:nth-child(8){animation-delay:0.8s}
-.letter:nth-child(9){animation-delay:0.9s} .letter:nth-child(10){animation-delay:1.0s}
-.letter:nth-child(11){animation-delay:1.1s}
-@keyframes fadeInLetter { from {opacity:0; transform:scale(0.8)} to {opacity:1; transform:scale(1)} }
-`;
+anim.textContent = `.letter { opacity:0; display:inline-block; animation:fadeInLetter 0.5s forwards; } .letter:nth-child(1){animation-delay:0.1s} .letter:nth-child(2){animation-delay:0.2s} .letter:nth-child(3){animation-delay:0.3s} .letter:nth-child(4){animation-delay:0.4s} .letter:nth-child(5){animation-delay:0.5s} .letter:nth-child(6){animation-delay:0.6s} .letter:nth-child(7){animation-delay:0.7s} .letter:nth-child(8){animation-delay:0.8s} .letter:nth-child(9){animation-delay:0.9s} .letter:nth-child(10){animation-delay:1.0s} .letter:nth-child(11){animation-delay:1.1s} @keyframes fadeInLetter { from {opacity:0; transform:scale(0.8)} to {opacity:1; transform:scale(1)} }`;
 document.head.appendChild(anim);
 const container = document.getElementById('main-page');
 if (container) container.prepend(logo);
 };
+
 const styleUsernameInput = () => {
 const input = document.getElementById('input_username');
 if (input) {
@@ -205,6 +198,7 @@ input.style.boxShadow = '0 0 8px #00ccff';
 input.style.textAlign = 'center';
 }
 };
+
 const stylePlayButton = () => {
 const btn = document.getElementById('connect_button');
 if (btn) {
@@ -219,51 +213,29 @@ btn.onmouseenter = () => btn.style.boxShadow = '0 0 20px #00ccff';
 btn.onmouseleave = () => btn.style.boxShadow = '0 0 12px #00ccff';
 }
 };
+
 const replaceAdBoxWithChangelog = () => {
 const ad = document.querySelector('.darkbox.ad');
 if (!ad) return;
 ad.remove();
 const cl = document.createElement('div');
-cl.style.cssText = `
-background: linear-gradient(135deg, rgba(15,25,45,0.92), rgba(20,35,60,0.92));
-border: 2px solid #24e9ff88; border-radius: 16px;
-padding: 20px 24px; margin: 25px auto 15px; max-width: 640px;
-box-shadow: 0 0 30px #24e9ff88, inset 0 0 20px rgba(36,233,255,0.15);
-color: #eafdff; font-family: 'Orbitron',sans-serif;
-`;
+cl.style.cssText = `background: linear-gradient(135deg, rgba(15,25,45,0.92), rgba(20,35,60,0.92)); border: 2px solid #24e9ff88; border-radius: 16px; padding: 20px 24px; margin: 25px auto 15px; max-width: 640px; box-shadow: 0 0 30px #24e9ff88, inset 0 0 20px rgba(36,233,255,0.15); color: #eafdff; font-family: 'Orbitron',sans-serif;`;
 cl.innerHTML = `
-<div style="font-size:21px; text-align:center; margin-bottom:18px; background:linear-gradient(90deg,#36ddff,#24e9ff,#00aaff);-webkit-background-clip:text;-webkit-text-fill-color:transparent; font-weight:900; letter-spacing:1.2px;">
-INTERIUM v13.0.2
-</div>
-<div style="display:grid; gap:10px; font-size:15px;">
-<div style="background:rgba(36,233,255,0.12); padding:10px 14px; border-radius:10px; border-left:4px solid #24e9ff;">
-<b>🎯 Fixed AimBot</b><br><small style="color:#80deea">Accurate targeting with corrected coordinates</small>
-</div>
-<div style="background:rgba(36,233,255,0.12); padding:10px 14px; border-radius:10px; border-left:4px solid #24e9ff;">
-<b>📏 Fixed Distance</b><br><small style="color:#80deea">Arrows show correct distance (5m not 50km)</small>
-</div>
-<div style="background:rgba(36,233,255,0.12); padding:10px 14px; border-radius:10px; border-left:4px solid #24e9ff;">
-<b>⚡ Instant Lobby</b><br><small style="color:#80deea">Custom background/logo applied immediately</small>
-</div>
-<div style="background:rgba(36,233,255,0.12); padding:10px 14px; border-radius:10px; border-left:4px solid #24e9ff;">
-<b>💾 Persistent Settings</b><br><small style="color:#80deea">Binds/features saved between sessions</small>
-</div>
-<div style="background:rgba(36,233,255,0.12); padding:10px 14px; border-radius:10px; border-left:4px solid #24e9ff;">
-<b>⌨️ Advanced Binds</b><br><small style="color:#80deea">Support for Shift/Ctrl/Alt/F-keys/Numpad</small>
-</div>
-<div style="background:rgba(36,233,255,0.12); padding:10px 14px; border-radius:10px; border-left:4px solid #24e9ff;">
-<b>❌ Smart Menu</b><br><small style="color:#80deea">Close with Esc or click outside</small>
-</div>
-<div style="background:rgba(36,233,255,0.12); padding:10px 14px; border-radius:10px; border-left:4px solid #24e9ff;">
-<b>✅ Notifications Fixed</b><br><small style="color:#80deea">All toggle messages visible and functional</small>
-</div>
-<div style="background:rgba(36,233,255,0.12); padding:10px 14px; border-radius:10px; border-left:4px solid #24e9ff;">
-<b>📊 FPS Counter</b><br><small style="color:#80deea">Moved to bottom-left corner</small>
-</div>
-</div>
+<div style="font-size:18px;font-weight:800;margin-bottom:15px;">INTERIUM v14.0.0</div>
+<div>🎯 Fixed AimBot - Accurate targeting with corrected coordinates</div>
+<div>📏 Fixed Distance - Arrows show correct distance (5m not 50km)</div>
+<div>⚡ Instant Lobby - Custom background/logo applied immediately</div>
+<div>💾 Persistent Settings - Binds/features saved between sessions</div>
+<div>⌨️ Advanced Binds - Support for Shift/Ctrl/Alt/F-keys/Numpad</div>
+<div>❌ Smart Menu - Close with Esc or click outside</div>
+<div>✅ Notifications Fixed - All toggle messages visible and functional</div>
+<div>📊 FPS Counter - Moved to bottom-left corner</div>
+<div>🔨 AutoCraft - NEW! Auto-craft shields & ammo</div>
+<div>🏆 Clan Spam Fixed - No more menu conflicts</div>
 `;
 document.body.appendChild(cl);
 };
+
 const fixLayout = () => {
 const c = document.getElementById('main-page');
 if (!c) return;
@@ -307,7 +279,7 @@ currentBlockIndex = (currentBlockIndex + 1) % enabled.length;
 const block = enabled[currentBlockIndex];
 const el = document.querySelector(`.recipe_image_container[item-id="${block.id}"], .recipe_image_container[data-item="${block.id}"]`);
 if (el) {
-el.click(); // ✅ ПРЯМОЙ КЛИК, НИКАКОЙ ЭМУЛЯЦИИ
+el.click();
 showNotification(`✅ ${block.name}`, 'info');
 return true;
 }
@@ -331,7 +303,7 @@ currentWallIndex = (currentWallIndex + 1) % enabled.length;
 const wall = enabled[currentWallIndex];
 const el = document.querySelector(`.recipe_image_container[item-id="${wall.id}"], .recipe_image_container[data-item="${wall.id}"]`);
 if (el) {
-el.click(); // ✅ ПРЯМОЙ КЛИК, НИКАКОЙ ЭМУЛЯЦИИ
+el.click();
 showNotification(`🧱 ${wall.name}`, 'info');
 return true;
 }
@@ -355,7 +327,7 @@ currentTurretIndex = (currentTurretIndex + 1) % enabled.length;
 const turret = enabled[currentTurretIndex];
 const el = document.querySelector(`.recipe_image_container[item-id="${turret.id}"], .recipe_image_container[data-item="${turret.id}"]`);
 if (el) {
-el.click(); // ✅ ПРЯМОЙ КЛИК, НИКАКОЙ ЭМУЛЯЦИИ
+el.click();
 showNotification(`🔫 ${turret.name}`, 'info');
 return true;
 }
@@ -363,44 +335,35 @@ return false;
 };
 
 let currentTrapIndex = 0;
-// Поставили enabled: true сразу, чтобы бинд работал всегда, когда включен селектор
 const traps = [{ id: 'trap_wood', name: 'Wooden Trap', enabled: true }];
-
 const getEnabledTraps = () => {
-    // Если галочка "Trap Selector" в меню выключена — ничего не делаем
-    if (!features.trapSelector.enabled) return [];
-    return traps; 
+if (!features.trapSelector.enabled) return [];
+return traps;
 };
-
 const selectNextTrap = () => {
-    const enabled = getEnabledTraps();
-    if (enabled.length === 0) return false;
-
-    currentTrapIndex = (currentTrapIndex + 1) % enabled.length;
-    const trap = enabled[currentTrapIndex];
-
-    // Ищем всеми способами: по id, по data-item и по номеру рецепта 73
-    const el = document.querySelector(
-        `.recipe_image_container[item-id="${trap.id}"], ` +
-        `.recipe_image_container[data-item="${trap.id}"], ` +
-        `.recipe_image_container[item-id="trap"], ` +
-        `.recipe_image_container[recipe-id="73"]`
-    );
-
-    if (el) {
-        el.click(); 
-        showNotification(`🪤 ${trap.name}`, 'info');
-        return true;
-    } else {
-        // Если не нашли, пробуем кликнуть по картинке внутри контейнера
-        const imgEl = document.querySelector(`img[src*="trap"], .recipe_image_container[recipe-id="73"]`);
-        if (imgEl) {
-            imgEl.click();
-            showNotification(`🪤 ${trap.name}`, 'info');
-            return true;
-        }
-    }
-    return false;
+const enabled = getEnabledTraps();
+if (enabled.length === 0) return false;
+currentTrapIndex = (currentTrapIndex + 1) % enabled.length;
+const trap = enabled[currentTrapIndex];
+const el = document.querySelector(
+`.recipe_image_container[item-id="${trap.id}"], ` +
+`.recipe_image_container[data-item="${trap.id}"], ` +
+`.recipe_image_container[item-id="trap"], ` +
+`.recipe_image_container[recipe-id="73"]`
+);
+if (el) {
+el.click();
+showNotification(`🪤 ${trap.name}`, 'info');
+return true;
+} else {
+const imgEl = document.querySelector(`img[src*="trap"], .recipe_image_container[recipe-id="73"]`);
+if (imgEl) {
+imgEl.click();
+showNotification(`🪤 ${trap.name}`, 'info');
+return true;
+}
+}
+return false;
 };
 
 let currentBoosterIndex = 0;
@@ -417,12 +380,71 @@ currentBoosterIndex = (currentBoosterIndex + 1) % enabled.length;
 const booster = enabled[currentBoosterIndex];
 const el = document.querySelector(`.recipe_image_container[item-id="${booster.id}"], .recipe_image_container[data-item="${booster.id}"]`);
 if (el) {
-el.click(); // ✅ ПРЯМОЙ КЛИК, НИКАКОЙ ЭМУЛЯЦИИ
+el.click();
 showNotification(`🚀 ${booster.name}`, 'info');
 return true;
 }
 return false;
 };
+
+// ────────────────────────────────────────────────
+//  ✅ AUTO CRAFT (НОВАЯ ФУНКЦИЯ)
+// ────────────────────────────────────────────────
+let autoCraftEnabled = false;
+let autoCraftActive = false;
+let autoCraftFrameId = null;
+let autoCraftType = 'shield_wood';
+
+const autoCraftItems = {
+shield_adamant: 'shield_adamant',
+shield_stone: 'shield_stone',
+shield_gold: 'shield_gold',
+shield_diamond: 'shield_diamond',
+shield_wood: 'shield_wood',
+ammo_bullet: 'ammo_bullet',
+ammo_bolt: 'ammo_bolt',
+ammo_arrow: 'ammo_arrow'
+};
+
+const autoCraftClicksPerFrame = 500;
+
+function simulateAutoCraftClick() {
+const itemId = autoCraftItems[autoCraftType];
+const el = document.querySelector(`.recipe_image_container[item-id="${itemId}"], .recipe_image_container[data-item="${itemId}"]`);
+if (!el) return;
+el.dispatchEvent(new MouseEvent('click', {
+bubbles: true,
+cancelable: true,
+view: window
+}));
+}
+
+function autoCraftLoop() {
+if (!autoCraftActive) return;
+for (let i = 0; i < autoCraftClicksPerFrame; i++) simulateAutoCraftClick();
+autoCraftFrameId = requestAnimationFrame(autoCraftLoop);
+}
+
+function toggleAutoCraft() {
+if (!autoCraftEnabled) return;
+autoCraftActive = !autoCraftActive;
+if (autoCraftActive) {
+autoCraftFrameId = requestAnimationFrame(autoCraftLoop);
+showNotification(`Auto-Craft (${autoCraftType}) ON`, 'enabled');
+} else {
+if (autoCraftFrameId) cancelAnimationFrame(autoCraftFrameId);
+showNotification('Auto-Craft OFF', 'disabled');
+}
+}
+
+function setAutoCraftType(type) {
+autoCraftType = type;
+if (autoCraftActive) {
+cancelAnimationFrame(autoCraftFrameId);
+autoCraftFrameId = requestAnimationFrame(autoCraftLoop);
+}
+saveSettings();
+}
 
 // ────────────────────────────────────────────────
 //  ✅ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ФИЧИ
@@ -431,21 +453,21 @@ let myObjId = null, myPos = null, myVel = [0,0], myClan = null, gameCanvas = nul
 let lastHitTime = 0, players = new Map(), arrowCanvas = null, arrowCtx = null;
 let clanSpamInterval = null;
 const HIT_COOLDOWN = 80, ARROW_OFFSET = 58, ARROW_LEN = 18, ARROW_WIDTH = 22;
-
 const features = {
-aimbot: { enabled: false, bind: null, predictionMode: 'auto', latencyComp: 0.05, velocityBoost: 1.0, overshoot: 0.4, falloffFactor: 1.0, ignoreClan: true, name: "AimBot" },
-triggerbot: { enabled: false, bind: null, minDist: 0.5, maxDist: 2.8, fireDelay: 60, name: "TriggerBot" },
-arrows: { enabled: false, bind: null, ignoreTeam: true, name: "Holo Arrows" },
-fullbright: { enabled: true, bind: null, name: "FullBright" },
-crosshair: { enabled: false, bind: null, name: "Crosshair" },
-fastrespawn: { enabled: true, bind: null, name: "Fast Respawn" },
-showfps: { enabled: true, bind: null, name: "Show FPS" },
-clanspam: { enabled: false, bind: null, speed: 120, name: "Clan Spam" },
-blockSelector: { enabled: false, bind: null, name: "Block Selector" },
-wallSelector: { enabled: false, bind: null, name: "Wall Selector" },
-turretSelector: { enabled: false, bind: null, name: "Turret Selector" },
-trapSelector: { enabled: false, bind: null, name: "Trap Selector" },
-boosterSelector: { enabled: false, bind: null, name: "Booster Selector" }
+aimbot: { enabled: false, bind: null, predictionMode: 'auto', latencyComp: 0.05, velocityBoost: 1.0, overshoot: 0.4, falloffFactor: 1.0, ignoreClan: true, name: "AimBot " },
+triggerbot: { enabled: false, bind: null, minDist: 0.5, maxDist: 2.8, fireDelay: 60, name: "TriggerBot " },
+arrows: { enabled: false, bind: null, ignoreTeam: true, name: "Holo Arrows " },
+fullbright: { enabled: true, bind: null, name: "FullBright " },
+crosshair: { enabled: false, bind: null, name: "Crosshair " },
+fastrespawn: { enabled: true, bind: null, name: "Fast Respawn " },
+showfps: { enabled: true, bind: null, name: "Show FPS " },
+clanspam: { enabled: false, bind: null, speed: 120, name: "Clan Spam " },
+blockSelector: { enabled: false, bind: null, name: "Block Selector " },
+wallSelector: { enabled: false, bind: null, name: "Wall Selector " },
+turretSelector: { enabled: false, bind: null, name: "Turret Selector " },
+trapSelector: { enabled: false, bind: null, name: "Trap Selector " },
+boosterSelector: { enabled: false, bind: null, name: "Booster Selector " },
+autoCraft: { enabled: false, bind: null, name: "AutoCraft " }
 };
 
 // ────────────────────────────────────────────────
@@ -456,7 +478,7 @@ window.WebSocket = function(...args) {
 const ws = new OriginalWS(...args);
 ws.addEventListener('message', e => {
 try {
-const decoded = msgpackDecode(e.data); // ✅ ИСПОЛЬЗУЕМ ИСПРАВЛЕННЫЙ ДЕКОДЕР
+const decoded = msgpackDecode(e.data);
 if (decoded?.header === 'update') {
 const ud = decoded.user_data;
 if (ud?.user_obj_id) myObjId = ud.user_obj_id;
@@ -510,8 +532,8 @@ return rawSetTimeout(cb, ms, ...args);
 // ────────────────────────────────────────────────
 const fullBright = () => {
 if (!features.fullbright.enabled) return;
-if (!window.__PIXI_APP__ || !window.__PIXI_APP__.stage) return;
-const nightLayer = window.__PIXI_APP__.stage.children.find(c => c.name === "Night Lights");
+if (!window.PIXI_APP || !window.PIXI_APP.stage) return;
+const nightLayer = window.PIXI_APP.stage.children.find(c => c.name === "Night Lights");
 if (nightLayer) {
 nightLayer.visible = false;
 if (nightLayer.filters) {
@@ -531,14 +553,7 @@ setInterval(fullBright, 800);
 const fpsEl = document.createElement('div');
 fpsEl.className = 'int-fps';
 fpsEl.textContent = 'FPS: --';
-fpsEl.style.cssText = `
-position: fixed; bottom: 22px; left: 19px; right: auto; background: rgba(14,50,73,.72);
-color: #68dbff; padding: 6px 14px; border-radius: 8px; font-family: 'Orbitron', monospace;
-font-size: 13.5px; z-index: 99999; border: 1.2px solid #24e9ff;
-box-shadow: 0 0 14px rgba(36,233,255,.5); font-weight: 700; backdrop-filter: blur(4px);
-transition: all .3s ease;
-opacity: 1; animation: fpsPulse 1.5s infinite;
-`;
+fpsEl.style.cssText = `position: fixed; bottom: 22px; left: 19px; right: auto; background: rgba(14,50,73,.72); color: #68dbff; padding: 6px 14px; border-radius: 8px; font-family: 'Orbitron', monospace; font-size: 13.5px; z-index: 99999; border: 1.2px solid #24e9ff; box-shadow: 0 0 14px rgba(36,233,255,.5); font-weight: 700; backdrop-filter: blur(4px); transition: all .3s ease; opacity: 1; animation: fpsPulse 1.5s infinite;`;
 document.documentElement.appendChild(fpsEl);
 let lastTime = performance.now(), frameCount = 0;
 function updateFPS() {
@@ -558,39 +573,15 @@ updateFPS();
 // ────────────────────────────────────────────────
 const notifContainer = document.createElement('div');
 notifContainer.id = 'notification-container';
-notifContainer.style.cssText = `
-position: fixed; bottom: 20px; left: 20px; z-index: 999999;
-display: flex; flex-direction: column; gap: 10px; pointer-events: none;
-`;
+notifContainer.style.cssText = `position: fixed; bottom: 20px; left: 20px; z-index: 999999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;`;
 document.documentElement.appendChild(notifContainer);
-
 const notifStyle = document.createElement('style');
-notifStyle.textContent = `
-.notification {
-transition: all .4s ease !important;
-}
-.notification.show {
-opacity: 1 !important;
-transform: translateX(0) scale(1) !important;
-}
-@keyframes fpsPulse {
-0%, 100% { box-shadow: 0 0 14px rgba(36,233,255,.5); }
-50% { box-shadow: 0 0 22px rgba(36,233,255,.8); }
-}
-`;
+notifStyle.textContent = `.notification { transition: all .4s ease !important; } .notification.show { opacity: 1 !important; transform: translateX(0) scale(1) !important; } @keyframes fpsPulse { 0%, 100% { box-shadow: 0 0 14px rgba(36,233,255,.5); } 50% { box-shadow: 0 0 22px rgba(36,233,255,.8); } }`;
 document.head.appendChild(notifStyle);
-
 function showNotification(text, type = 'info') {
 const n = document.createElement('div');
 n.className = `notification ${type} interium-notification`;
-n.style.cssText = `
-background: linear-gradient(135deg, rgba(15,25,45,.97), rgba(27,38,59,.97));
-color: #eafdff; padding: 12px 18px; border-radius: 12px;
-font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600;
-box-shadow: 0 0 24px rgba(36,233,255,.5); border-left: 4px solid #24e9ff;
-opacity: 0; transform: translateX(-120px) scale(.92); transition: all .4s ease;
-display: flex; align-items: center; gap: 12px; min-width: 260px; pointer-events: auto;
-`;
+n.style.cssText = `background: linear-gradient(135deg, rgba(15,25,45,.97), rgba(27,38,59,.97)); color: #eafdff; padding: 12px 18px; border-radius: 12px; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600; box-shadow: 0 0 24px rgba(36,233,255,.5); border-left: 4px solid #24e9ff; opacity: 0; transform: translateX(-120px) scale(.92); transition: all .4s ease; display: flex; align-items: center; gap: 12px; min-width: 260px; pointer-events: auto;`;
 n.innerHTML = `<div style="width:24px;height:24px;background:#24e9ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0f1a2b;font-weight:bold;box-shadow:0 0 12px #24e9ff99;">${type==='enabled'?'ON':type==='disabled'?'OFF':'i'}</div><div>${text}</div>`;
 notifContainer.appendChild(n);
 setTimeout(() => {
@@ -637,39 +628,53 @@ return findAllEnemies().filter(e => !e.teammate)[0] || null;
 }
 
 // ────────────────────────────────────────────────
-//  CLAN SPAM
+//  ✅ CLAN SPAM (ПОЛНОСТЬЮ ПЕРЕПИСАН - БЕЗ КОНФЛИКТОВ С МЕНЮ)
 // ────────────────────────────────────────────────
-const interiumSeq = ["I","In","Int","Inte","Inter","Interi","Interiu","Interium","Interiu","Interi","Inter","Inte","Int","In","I"];
+const interiumSeq = ["I ", "In ", "Int ", "Inte ", "Inter ", "Interi ", "Interiu ", "Interium ", "Interiu ", "Interi ", "Inter ", "Inte ", "Int ", "In ", "I "];
 let spamIndex = 0;
-function startClanSpam() {
-    const input = document.getElementById('input_clan_name');
-    const createBtn = document.getElementById('create_join_clan_button');
-    const leaveBtn = document.getElementById('leave_clan_button');
-    
-    if (!input || !createBtn || !leaveBtn) return;
-    stopClanSpam();
+let clanMenuElement = null;
 
-    clanSpamInterval = setInterval(() => {
-        // Проверка: если на экране есть меню чита, спам пропускает тик
-        // Мы ищем по классу 'interium-menu-container', который есть в твоем коде
-        const menu = document.querySelector('.interium-menu-container');
-        if (menu && menu.style.display !== 'none') {
-            return; 
-        }
-
-        // Если меню закрыто — спамим
-        input.value = interiumSeq[spamIndex];
-        createBtn.click();
-        
-        setTimeout(() => {
-            if (leaveBtn && features.clanspam.enabled) {
-                leaveBtn.click();
-            }
-        }, 50);
-
-        spamIndex = (spamIndex + 1) % interiumSeq.length;
-    }, Math.max(features.clanspam.speed, 150));
+function findClanMenu() {
+clanMenuElement = document.querySelector('.ingame_draggable_menu, #clan_menu');
+return clanMenuElement;
 }
+
+function startClanSpam() {
+const input = document.getElementById('input_clan_name');
+const createBtn = document.getElementById('create_join_clan_button');
+const leaveBtn = document.getElementById('leave_clan_button');
+if (!input || !createBtn || !leaveBtn) {
+setTimeout(startClanSpam, 500);
+return;
+}
+stopClanSpam();
+
+clanSpamInterval = setInterval(() => {
+// ✅ ПРОВЕРКА: НЕ СПАМИМ ЕСЛИ МЕНЮ ЧИТА ОТКРЫТО
+const menu = document.querySelector('.interium-menu-container, .premium-panel');
+if (menu && menu.classList.contains('show')) {
+return;
+}
+
+// ✅ НАХОДИМ КЛАН МЕНЮ И РАБОТАЕМ ТОЛЬКО С НИМ
+findClanMenu();
+
+// ✅ СПАМ РАБОТАЕТ ТОЛЬКО ЕСЛИ КЛАН МЕНЮ ВИДИМО
+if (clanMenuElement && clanMenuElement.style.display !== 'none') {
+input.value = interiumSeq[spamIndex];
+createBtn.click();
+
+setTimeout(() => {
+if (leaveBtn && features.clanspam.enabled) {
+leaveBtn.click();
+}
+}, 50);
+
+spamIndex = (spamIndex + 1) % interiumSeq.length;
+}
+}, Math.max(features.clanspam.speed, 200));
+}
+
 function stopClanSpam() {
 if (clanSpamInterval) clearInterval(clanSpamInterval);
 clanSpamInterval = null;
@@ -688,16 +693,17 @@ arrowCtx = arrowCanvas.getContext('2d');
 arrowCanvas.width = innerWidth;
 arrowCanvas.height = innerHeight;
 }
+
 function drawGlowArrow(cx, cy, angle, dist, nick, color) {
 if (!arrowCtx) return;
 const baseX = cx + Math.cos(angle) * ARROW_OFFSET;
 const baseY = cy + Math.sin(angle) * ARROW_OFFSET;
 const tipX = baseX + Math.cos(angle) * ARROW_LEN;
 const tipY = baseY + Math.sin(angle) * ARROW_LEN;
-const leftX = baseX + Math.cos(angle + Math.PI*0.75) * (ARROW_WIDTH/2);
-const leftY = baseY + Math.sin(angle + Math.PI*0.75) * (ARROW_WIDTH/2);
-const rightX = baseX + Math.cos(angle - Math.PI*0.75) * (ARROW_WIDTH/2);
-const rightY = baseY + Math.sin(angle - Math.PI*0.75) * (ARROW_WIDTH/2);
+const leftX = baseX + Math.cos(angle + Math.PI * 0.75) * (ARROW_WIDTH/2);
+const leftY = baseY + Math.sin(angle + Math.PI * 0.75) * (ARROW_WIDTH/2);
+const rightX = baseX + Math.cos(angle - Math.PI * 0.75) * (ARROW_WIDTH/2);
+const rightY = baseY + Math.sin(angle - Math.PI * 0.75) * (ARROW_WIDTH/2);
 let fill, glow, textBg;
 if (color === "#ff3366") {
 fill = "#ff3141"; glow = "#ff0a54"; textBg = "#ff2233dd";
@@ -756,6 +762,7 @@ arrowCtx.textBaseline = "middle";
 arrowCtx.fillText(nick, baseX, rectY + h/2 + 0.5);
 arrowCtx.restore();
 }
+
 function drawAllArrows(cx, cy, enemies) {
 if (!arrowCtx) return;
 arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
@@ -774,6 +781,7 @@ if (d > 10) return 32.3;
 if (d > 5) return 33.4;
 return 30.9;
 }
+
 function calculateScreenPos(enemy) {
 if (!gameCanvas || !myPos) return {screenX:0, screenY:0};
 const rect = gameCanvas.getBoundingClientRect();
@@ -791,10 +799,10 @@ const iJumping = mySpeed > walkSpeed + 0.5;
 const enemyJumping = enemySpeed > walkSpeed + 0.5;
 let latencyComp = 0.05, velocityBoost = 1.0, overshoot = 0.4, falloffFactor = 1.0;
 if (features.aimbot.predictionMode === 'custom') {
-latencyComp    = features.aimbot.latencyComp;
-velocityBoost  = features.aimbot.velocityBoost;
-overshoot      = features.aimbot.overshoot;
-falloffFactor  = features.aimbot.falloffFactor;
+latencyComp = features.aimbot.latencyComp;
+velocityBoost = features.aimbot.velocityBoost;
+overshoot = features.aimbot.overshoot;
+falloffFactor = features.aimbot.falloffFactor;
 } else {
 if (enemyJumping && !iJumping) { velocityBoost = 1.3; latencyComp = 0.08; overshoot = 0.8; falloffFactor = 0.85; }
 if (iJumping && !enemyJumping) { latencyComp += 0.03; overshoot += 0.2; }
@@ -812,6 +820,7 @@ screenX: tx * scale + cameraX + rect.left,
 screenY: ty * scale + cameraY + rect.top
 };
 }
+
 function performAim(enemy) {
 if (!features.aimbot.enabled || !gameCanvas) return;
 const {screenX, screenY} = calculateScreenPos(enemy);
@@ -819,6 +828,7 @@ gameCanvas.dispatchEvent(new MouseEvent('mousemove', {
 clientX: screenX, clientY: screenY, bubbles: true, cancelable: true
 }));
 }
+
 function checkTrigger(enemy) {
 if (!features.triggerbot.enabled || !enemy || !gameCanvas) return;
 if (enemy.dist < features.triggerbot.minDist || enemy.dist > features.triggerbot.maxDist) return;
@@ -839,306 +849,61 @@ button: 0, clientX: screenX, clientY: screenY, bubbles: true
 // ────────────────────────────────────────────────
 //  СТИЛИ НОВОГО МЕНЮ
 // ────────────────────────────────────────────────
-const newMenuStyles = `
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Orbitron:wght@700&display=swap');
-:root {
---font-main: 'Montserrat', sans-serif;
---font-logo: 'Orbitron', sans-serif;
---color-text: rgba(255, 255, 255, 0.7);
---color-text-bright: #fff;
---color-border: rgba(255, 255, 255, 0.1);
---color-accent: #24e9ff;
---panel-bg: rgba(10, 10, 12, 0.98);
---switch-off: rgba(255,255,255,0.05);
---switch-on: #24e9ff;
-}
-.premium-panel {
-display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-width: 780px; height: 620px; background: var(--panel-bg); backdrop-filter: blur(20px);
-border-radius: 16px; box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 30px rgba(36, 233, 255, 0.25);
-border: 1px solid var(--color-border); border-image: linear-gradient(to bottom, transparent, var(--color-accent), transparent) 1;
-flex-direction: column; font-family: var(--font-main); color: var(--color-text); z-index: 999999; overflow: hidden;
-transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0;
-}
-.premium-panel.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-.p-header {
-padding: 22px 28px; border-bottom: 1px solid var(--color-border); cursor: grab; user-select: none;
-background: linear-gradient(90deg, rgba(0,0,0,0.4) 0%, rgba(36,233,255,0.08) 100%);
-display: flex; align-items: center; justify-content: space-between;
-}
-.p-logo {
-font-family: var(--font-logo); font-size: 26px; background: linear-gradient(90deg, #36ddff, #24e9ff, #00aaff);
--webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px; font-weight: 800;
-text-shadow: 0 0 15px rgba(36, 233, 255, 0.5);
-}
-.p-logo span {
-font-weight: 400; font-family: var(--font-main); font-size: 11px; opacity: 0.5;
-text-transform: uppercase; letter-spacing: 3px; margin-left: 12px; background: none; -webkit-text-fill-color: var(--color-text);
-}
-.p-main { display: flex; flex-grow: 1; overflow: hidden; height: calc(100% - 75px); }
-.p-sidebar {
-width: 220px; border-right: 1px solid var(--color-border); background: rgba(0,0,0,0.2);
-display: flex; flex-direction: column; position: relative;
-}
-.p-footer {
-position: absolute; bottom: 0; left: 0; width: 100%; height: 95px; padding: 0 18px;
-border-top: 1px solid rgba(36,233,255,0.2); background: rgba(5, 15, 25, 0.92);
-display: flex; align-items: center; gap: 14px; box-sizing: border-box;
-box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
-}
-.p-user-avatar {
-width: 42px; height: 42px; background: linear-gradient(135deg, #0a1a2a, #0d2538);
-border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--color-accent);
-flex-shrink: 0; box-shadow: 0 0 15px rgba(36, 233, 255, 0.3);
-}
-.p-user-avatar svg { width: 22px; height: 22px; fill: var(--color-accent); }
-.p-user-details { font-size: 12px; line-height: 1.4; }
-.username-f {
-font-weight: 800; color: var(--color-accent); font-size: 14px !important;
-opacity: 1 !important; margin-bottom: 3px; letter-spacing: 0.5px;
-}
-.p-tab {
-display: flex; align-items: center; gap: 14px; padding: 15px 26px; cursor: pointer;
-color: var(--color-text); font-size: 14px; font-weight: 600; transition: all 0.25s ease;
-border-left: 3px solid transparent; position: relative;
-}
-.p-tab svg { width: 18px; height: 18px; opacity: 0.6; flex-shrink: 0; transition: all 0.3s; }
-.p-tab:hover { background: rgba(255,255,255,0.04); color: var(--color-text-bright); }
-.p-tab:hover svg { opacity: 0.9; transform: scale(1.05); }
-.p-tab.active {
-color: var(--color-text-bright); background: rgba(36, 233, 255, 0.12);
-border-left-color: var(--color-accent);
-}
-.p-tab.active svg { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 8px var(--color-accent)); }
-.p-content { flex-grow: 1; padding: 28px; overflow-y: auto; position: relative; }
-.p-content-tab { display: none; animation: slideIn 0.35s ease-out; }
-.p-content-tab.active { display: block; }
-@keyframes slideIn {
-from { opacity: 0; transform: translateX(15px); }
-to { opacity: 1; transform: translateX(0); }
-}
-.p-groupbox {
-background: rgba(15, 25, 40, 0.7); border: 1px solid rgba(36, 233, 255, 0.15);
-border-radius: 14px; padding: 22px; margin-bottom: 24px;
-box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
-transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.p-groupbox:hover {
-transform: translateY(-2px);
-box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 15px rgba(36, 233, 255, 0.1);
-border-color: rgba(36, 233, 255, 0.3);
-}
-.p-groupbox-title {
-font-size: 12px; font-weight: 800; color: rgba(130, 220, 255, 0.85);
-margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1.8px;
-display: flex; align-items: center; gap: 8px;
-}
-.p-groupbox-title::before {
-content: ""; width: 4px; height: 16px; background: var(--color-accent);
-border-radius: 2px; display: inline-block;
-}
-.p-opt {
-display: flex; justify-content: space-between; align-items: center;
-padding: 10px 0; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.06);
-transition: background 0.2s;
-}
-.p-opt:last-child { border-bottom: none; }
-.p-opt:hover { background: rgba(255,255,255,0.03); border-radius: 8px; }
-.p-opt-title { display: flex; flex-direction: column; }
-.p-opt-main { font-weight: 600; color: var(--color-text-bright); margin-bottom: 2px; }
-.p-opt-desc { font-size: 11px; opacity: 0.65; }
-.p-switch {
-width: 48px; height: 24px; background: var(--switch-off); border-radius: 20px;
-cursor: pointer; position: relative; border: 1.5px solid rgba(255,255,255,0.15);
-transition: all 0.3s ease; display: flex; align-items: center;
-}
-.p-switch.active {
-background: var(--color-accent); box-shadow: 0 0 15px rgba(36, 233, 255, 0.4);
-border-color: var(--color-accent);
-}
-.p-switch-handle {
-position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
-background: #fff; border-radius: 50%; transition: all 0.3s ease;
-box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-.p-switch.active .p-switch-handle { transform: translateX(24px); background: #0a1a2a; }
-.kb-box {
-font-size: 11px; color: var(--color-accent); background: rgba(36, 233, 255, 0.12);
-border: 1px solid rgba(36, 233, 255, 0.4); padding: 4px 10px; border-radius: 6px;
-font-weight: 800; cursor: pointer; min-width: 36px; text-align: center;
-transition: all 0.25s; margin-left: 10px;
-}
-.kb-box:hover { background: rgba(36, 233, 255, 0.2); transform: scale(1.05); }
-.kb-box.waiting {
-color: #ffcc00; border-color: #ffcc00; background: rgba(255, 204, 0, 0.15);
-animation: pulse 1.5s infinite;
-}
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); } 70% { box-shadow: 0 0 0 8px rgba(255,204,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); } }
-.p-sel-container { margin-top: 18px; }
-.p-sel-header {
-background: rgba(20, 30, 45, 0.8); border: 1px solid rgba(36, 233, 255, 0.2);
-padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between;
-align-items: center; cursor: pointer; transition: all 0.25s;
-}
-.p-sel-header:hover { border-color: var(--color-accent); background: rgba(30, 45, 65, 0.9); }
-.p-sel-header svg { transition: transform 0.3s; }
-.p-sel-header.active svg { transform: rotate(180deg); }
-.p-sel-dropdown {
-position: absolute; top: 100%; left: 0; width: 100%; background: #0f1a28;
-border: 1px solid var(--color-border); border-top: none; border-radius: 0 0 10px 10px;
-display: none; z-index: 20; max-height: 200px; overflow-y: auto; margin-top: 2px;
-}
-.p-sel-item {
-padding: 10px 16px; font-size: 13px; cursor: pointer; color: var(--color-text);
-transition: all 0.2s; border-left: 3px solid transparent;
-}
-.p-sel-item:hover {
-background: rgba(36, 233, 255, 0.1); color: var(--color-text-bright);
-border-left-color: var(--color-accent);
-}
-.p-sel-item.active {
-background: rgba(36, 233, 255, 0.15); color: var(--color-accent); font-weight: 600;
-border-left-color: var(--color-accent);
-}
-.slider-container {
-margin-top: 15px;
-}
-.slider-label {
-display: flex; justify-content: space-between; font-size: 11px; font-weight: 700;
-text-transform: uppercase; margin-bottom: 8px; color: rgba(180, 230, 255, 0.85);
-}
-.slider-label span:last-child { color: var(--color-accent); font-weight: 800; }
-.p-slider-track {
-position: relative; height: 5px; background: rgba(255,255,255,0.08); border-radius: 10px;
-margin-top: 5px; cursor: pointer; transition: height 0.2s;
-}
-.p-slider-track:hover { height: 7px; }
-.p-slider-fill {
-position: absolute; top: 0; left: 0; height: 100%; background: var(--color-accent);
-border-radius: 10px; box-shadow: 0 0 10px rgba(36, 233, 255, 0.5);
-}
-.p-slider-thumb {
-position: absolute; top: 50%; transform: translateY(-50%); width: 20px; height: 20px;
-background: var(--color-accent); border-radius: 50%; border: 3px solid #0a1a2a;
-box-shadow: 0 0 12px rgba(36, 233, 255, 0.7); cursor: grab;
-}
-.info-grid {
-display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 15px;
-}
-.info-card {
-background: rgba(15, 25, 40, 0.85); border: 1px solid rgba(36, 233, 255, 0.2);
-border-radius: 14px; padding: 20px; transition: transform 0.3s;
-}
-.info-card:hover { transform: translateY(-3px); border-color: rgba(36, 233, 255, 0.4); }
-.info-title {
-font-size: 10px; color: rgba(130, 220, 255, 0.8); text-transform: uppercase;
-font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
-}
-.info-row {
-display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;
-padding-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.1);
-}
-.info-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-.info-label { opacity: 0.7; }
-.info-value {
-color: var(--color-accent); font-weight: 700; padding: 2px 8px;
-background: rgba(36, 233, 255, 0.1); border-radius: 4px;
-}
-.contacts-grid {
-display: flex; justify-content: space-around; margin-top: 20px; padding-top: 15px;
-border-top: 1px solid rgba(36, 233, 255, 0.2);
-}
-.contact-item { text-align: center; }
-.contact-role {
-font-size: 10px; opacity: 0.6; text-transform: uppercase; margin-bottom: 6px;
-letter-spacing: 1px; font-weight: 700;
-}
-.contact-name {
-color: var(--color-accent); font-weight: 800; font-size: 15px;
-background: rgba(36, 233, 255, 0.15); padding: 5px 15px; border-radius: 20px;
-display: inline-block; min-width: 100px;
-}
-.always-on-badge {
-background: rgba(0, 255, 136, 0.15); color: #00ff88; border: 1px solid rgba(0, 255, 136, 0.4);
-padding: 2px 10px; border-radius: 12px; font-weight: 700; font-size: 11px;
-letter-spacing: 0.5px;
-}
-.building-type {
-display: flex; align-items: center; justify-content: space-between;
-padding: 8px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.building-type:last-child { border-bottom: none; }
-.panel-glow {
-position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-background: radial-gradient(circle, rgba(36, 233, 255, 0.15) 0%, transparent 70%);
-animation: rotateGlow 15s linear infinite; z-index: -1; opacity: 0.7;
-}
-@keyframes rotateGlow { to { transform: rotate(360deg); } }
-@media (max-width: 800px) {
-.premium-panel { width: 95%; height: 95%; }
-.info-grid { grid-template-columns: 1fr; }
-}
-`;
+const newMenuStyles = `@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Orbitron:wght@700&display=swap'); :root { --font-main: 'Montserrat', sans-serif; --font-logo: 'Orbitron', sans-serif; --color-text: rgba(255, 255, 255, 0.7); --color-text-bright: #fff; --color-border: rgba(255, 255, 255, 0.1); --color-accent: #24e9ff; --panel-bg: rgba(10, 10, 12, 0.98); --switch-off: rgba(255,255,255,0.05); --switch-on: #24e9ff; } .premium-panel { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 780px; height: 620px; background: var(--panel-bg); backdrop-filter: blur(20px); border-radius: 16px; box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 30px rgba(36, 233, 255, 0.25); border: 1px solid var(--color-border); border-image: linear-gradient(to bottom, transparent, var(--color-accent), transparent) 1; flex-direction: column; font-family: var(--font-main); color: var(--color-text); z-index: 999999; overflow: hidden; transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0; } .premium-panel.show { opacity: 1; transform: translate(-50%, -50%) scale(1); } .p-header { padding: 22px 28px; border-bottom: 1px solid var(--color-border); cursor: grab; user-select: none; background: linear-gradient(90deg, rgba(0,0,0,0.4) 0%, rgba(36,233,255,0.08) 100%); display: flex; align-items: center; justify-content: space-between; } .p-logo { font-family: var(--font-logo); font-size: 26px; background: linear-gradient(90deg, #36ddff, #24e9ff, #00aaff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px; font-weight: 800; text-shadow: 0 0 15px rgba(36, 233, 255, 0.5); } .p-logo span { font-weight: 400; font-family: var(--font-main); font-size: 11px; opacity: 0.5; text-transform: uppercase; letter-spacing: 3px; margin-left: 12px; background: none; -webkit-text-fill-color: var(--color-text); } .p-main { display: flex; flex-grow: 1; overflow: hidden; height: calc(100% - 75px); } .p-sidebar { width: 220px; border-right: 1px solid var(--color-border); background: rgba(0,0,0,0.2); display: flex; flex-direction: column; position: relative; } .p-footer { position: absolute; bottom: 0; left: 0; width: 100%; height: 95px; padding: 0 18px; border-top: 1px solid rgba(36,233,255,0.2); background: rgba(5, 15, 25, 0.92); display: flex; align-items: center; gap: 14px; box-sizing: border-box; box-shadow: 0 -5px 15px rgba(0,0,0,0.3); } .p-user-avatar { width: 42px; height: 42px; background: linear-gradient(135deg, #0a1a2a, #0d2538); border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--color-accent); flex-shrink: 0; box-shadow: 0 0 15px rgba(36, 233, 255, 0.3); } .p-user-avatar svg { width: 22px; height: 22px; fill: var(--color-accent); } .p-user-details { font-size: 12px; line-height: 1.4; } .username-f { font-weight: 800; color: var(--color-accent); font-size: 14px !important; opacity: 1 !important; margin-bottom: 3px; letter-spacing: 0.5px; } .p-tab { display: flex; align-items: center; gap: 14px; padding: 15px 26px; cursor: pointer; color: var(--color-text); font-size: 14px; font-weight: 600; transition: all 0.25s ease; border-left: 3px solid transparent; position: relative; } .p-tab svg { width: 18px; height: 18px; opacity: 0.6; flex-shrink: 0; transition: all 0.3s; } .p-tab:hover { background: rgba(255,255,255,0.04); color: var(--color-text-bright); } .p-tab:hover svg { opacity: 0.9; transform: scale(1.05); } .p-tab.active { color: var(--color-text-bright); background: rgba(36, 233, 255, 0.12); border-left-color: var(--color-accent); } .p-tab.active svg { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 8px var(--color-accent)); } .p-content { flex-grow: 1; padding: 28px; overflow-y: auto; position: relative; } .p-content-tab { display: none; animation: slideIn 0.35s ease-out; } .p-content-tab.active { display: block; } @keyframes slideIn { from { opacity: 0; transform: translateX(15px); } to { opacity: 1; transform: translateX(0); } } .p-groupbox { background: rgba(15, 25, 40, 0.7); border: 1px solid rgba(36, 233, 255, 0.15); border-radius: 14px; padding: 22px; margin-bottom: 24px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25); transition: transform 0.3s ease, box-shadow 0.3s ease; } .p-groupbox:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 15px rgba(36, 233, 255, 0.1); border-color: rgba(36, 233, 255, 0.3); } .p-groupbox-title { font-size: 12px; font-weight: 800; color: rgba(130, 220, 255, 0.85); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1.8px; display: flex; align-items: center; gap: 8px; } .p-groupbox-title::before { content: ""; width: 4px; height: 16px; background: var(--color-accent); border-radius: 2px; display: inline-block; } .p-opt { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 0.2s; } .p-opt:last-child { border-bottom: none; } .p-opt:hover { background: rgba(255,255,255,0.03); border-radius: 8px; } .p-opt-title { display: flex; flex-direction: column; } .p-opt-main { font-weight: 600; color: var(--color-text-bright); margin-bottom: 2px; } .p-opt-desc { font-size: 11px; opacity: 0.65; } .p-switch { width: 48px; height: 24px; background: var(--switch-off); border-radius: 20px; cursor: pointer; position: relative; border: 1.5px solid rgba(255,255,255,0.15); transition: all 0.3s ease; display: flex; align-items: center; } .p-switch.active { background: var(--color-accent); box-shadow: 0 0 15px rgba(36, 233, 255, 0.4); border-color: var(--color-accent); } .p-switch-handle { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: all 0.3s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.3); } .p-switch.active .p-switch-handle { transform: translateX(24px); background: #0a1a2a; } .kb-box { font-size: 11px; color: var(--color-accent); background: rgba(36, 233, 255, 0.12); border: 1px solid rgba(36, 233, 255, 0.4); padding: 4px 10px; border-radius: 6px; font-weight: 800; cursor: pointer; min-width: 36px; text-align: center; transition: all 0.25s; margin-left: 10px; } .kb-box:hover { background: rgba(36, 233, 255, 0.2); transform: scale(1.05); } .kb-box.waiting { color: #ffcc00; border-color: #ffcc00; background: rgba(255, 204, 0, 0.15); animation: pulse 1.5s infinite; } @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); } 70% { box-shadow: 0 0 0 8px rgba(255,204,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); } } .p-sel-container { margin-top: 18px; } .p-sel-header { background: rgba(20, 30, 45, 0.8); border: 1px solid rgba(36, 233, 255, 0.2); padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.25s; } .p-sel-header:hover { border-color: var(--color-accent); background: rgba(30, 45, 65, 0.9); } .p-sel-header svg { transition: transform 0.3s; } .p-sel-header.active svg { transform: rotate(180deg); } .p-sel-dropdown { position: absolute; top: 100%; left: 0; width: 100%; background: #0f1a28; border: 1px solid var(--color-border); border-top: none; border-radius: 0 0 10px 10px; display: none; z-index: 20; max-height: 200px; overflow-y: auto; margin-top: 2px; } .p-sel-item { padding: 10px 16px; font-size: 13px; cursor: pointer; color: var(--color-text); transition: all 0.2s; border-left: 3px solid transparent; } .p-sel-item:hover { background: rgba(36, 233, 255, 0.1); color: var(--color-text-bright); border-left-color: var(--color-accent); } .p-sel-item.active { background: rgba(36, 233, 255, 0.15); color: var(--color-accent); font-weight: 600; border-left-color: var(--color-accent); } .slider-container { margin-top: 15px; } .slider-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; color: rgba(180, 230, 255, 0.85); } .slider-label span:last-child { color: var(--color-accent); font-weight: 800; } .p-slider-track { position: relative; height: 5px; background: rgba(255,255,255,0.08); border-radius: 10px; margin-top: 5px; cursor: pointer; transition: height 0.2s; } .p-slider-track:hover { height: 7px; } .p-slider-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(--color-accent); border-radius: 10px; box-shadow: 0 0 10px rgba(36, 233, 255, 0.5); } .p-slider-thumb { position: absolute; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; background: var(--color-accent); border-radius: 50%; border: 3px solid #0a1a2a; box-shadow: 0 0 12px rgba(36, 233, 255, 0.7); cursor: grab; } .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 15px; } .info-card { background: rgba(15, 25, 40, 0.85); border: 1px solid rgba(36, 233, 255, 0.2); border-radius: 14px; padding: 20px; transition: transform 0.3s; } .info-card:hover { transform: translateY(-3px); border-color: rgba(36, 233, 255, 0.4); } .info-title { font-size: 10px; color: rgba(130, 220, 255, 0.8); text-transform: uppercase; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; } .info-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.1); } .info-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; } .info-label { opacity: 0.7; } .info-value { color: var(--color-accent); font-weight: 700; padding: 2px 8px; background: rgba(36, 233, 255, 0.1); border-radius: 4px; } .contacts-grid { display: flex; justify-content: space-around; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(36, 233, 255, 0.2); } .contact-item { text-align: center; } .contact-role { font-size: 10px; opacity: 0.6; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px; font-weight: 700; } .contact-name { color: var(--color-accent); font-weight: 800; font-size: 15px; background: rgba(36, 233, 255, 0.15); padding: 5px 15px; border-radius: 20px; display: inline-block; min-width: 100px; } .always-on-badge { background: rgba(0, 255, 136, 0.15); color: #00ff88; border: 1px solid rgba(0, 255, 136, 0.4); padding: 2px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; } .building-type { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.06); } .building-type:last-child { border-bottom: none; } .panel-glow { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(36, 233, 255, 0.15) 0%, transparent 70%); animation: rotateGlow 15s linear infinite; z-index: -1; opacity: 0.7; } @keyframes rotateGlow { to { transform: rotate(360deg); } } .craft-category { margin-bottom: 20px; } .craft-category-title { font-size: 13px; font-weight: 700; color: var(--color-accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; } .craft-buttons-row { display: flex; flex-wrap: wrap; gap: 8px; } .craft-type-btn { background: rgba(36, 233, 255, 0.1); border: 1px solid rgba(36, 233, 255, 0.3); color: var(--color-text); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.25s; } .craft-type-btn:hover { background: rgba(36, 233, 255, 0.2); border-color: var(--color-accent); color: var(--color-text-bright); } .craft-type-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: #0a1a2a; box-shadow: 0 0 12px rgba(36, 233, 255, 0.5); } @media (max-width: 800px) { .premium-panel { width: 95%; height: 95%; } .info-grid { grid-template-columns: 1fr; } }`;
 
 // ────────────────────────────────────────────────
-//  HTML МЕНЮ
+//  HTML МЕНЮ (ОБНОВЛЁННЫЙ С AUTOCRAFT)
 // ────────────────────────────────────────────────
 const menuHtml = `
-<div class="premium-panel">
+<div class="premium-panel interium-menu-container">
 <div class="panel-glow"></div>
 <div class="p-header">
-<div class="p-logo">INTERIUM.CC <span>v13.0.2</span></div>
-<div style="font-family:var(--font-main); font-size:13px; opacity:0.7; letter-spacing:1px;">
-Absolute Phantom
-</div>
+<div class="p-logo">INTERIUM.CC <span>v14.0.2</span></div>
+<div style="font-size:11px;opacity:0.6;">Absolute Phantom</div>
 </div>
 <div class="p-main">
 <div class="p-sidebar">
-<div class="p-tabs-list" style="flex:1; padding-top:20px;">
-<div class="p-tab active" data-tab="combat">
-<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21,11.5L20,10.5V8.5L18,7.5H16V5.5H11V7.5L8,8.5L2,9.5L1,10.5V13.5L3,14.5H6L7,13.5H10V16.5L11,17.5H14V13.5L16,12.5L21,13V11.5Z" transform="scale(0.55) translate(8,8)" /></svg>
+<div class="p-tab active" data-tab="tab-combat">
+<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 22h20L12 2zm0 4l6 14H6L12 6z"/></svg>
 Combat
 </div>
-<div class="p-tab" data-tab="visuals">
-<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 13a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+<div class="p-tab" data-tab="tab-visuals">
+<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
 Visuals
 </div>
-<div class="p-tab" data-tab="building">
-<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19,19H5V5H11V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V13H19M7.5,17V15H10V17H7.5M12.5,17V15H15V17H12.5M7.5,13V11H10V13H7.5M12.5,13V11H15V13H12.5M19,3V9H17V7H15V9H13V7H11V9H9V7H7V9H5V3H19Z"/></svg>
+<div class="p-tab" data-tab="tab-building">
+<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3zm5 15h-2v-6H9v6H7v-7.81l5-4.5 5 4.5V18z"/></svg>
 Building
 </div>
-<div class="p-tab" data-tab="misc">
-<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5M12,4.15L6.04,7.5L12,10.85L17.96,7.5L12,4.15Z" /></svg>
+<div class="p-tab" data-tab="tab-misc">
+<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
 Misc
 </div>
-<div class="p-tab" data-tab="info">
-<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11,9H13V7H11V9M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z" /></svg>
+<div class="p-tab" data-tab="tab-info">
+<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
 Info
-</div>
 </div>
 <div class="p-footer">
 <div class="p-user-avatar">
-<svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
 </div>
 <div class="p-user-details">
-<span class="username-f" id="menu-username">User: doomed</span>
-<span id="menu-id">ID: INTERIUM</span>
-<span>Role: Premium User</span>
-<span>Subscription: <span style="color:#00ff88; font-weight:700">Lifetime</span></span>
+<div class="username-f" id="menu-username">User: doomed</div>
+<div style="opacity:0.6;">ID: INTERIUM</div>
+<div class="always-on-badge">Lifetime</div>
 </div>
 </div>
 </div>
 <div class="p-content">
-<!-- COMBAT TAB -->
-<div class="p-content-tab active" id="combat">
+<div class="p-content-tab active" id="tab-combat">
 <div class="p-groupbox">
-<div class="p-groupbox-title">Aim Configuration</div>
+<div class="p-groupbox-title">⚔️ Aim Configuration</div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Enable AimBot</div>
 <div class="p-opt-desc">Auto-target enemies with prediction</div>
 </div>
-<div style="display:flex; align-items:center; gap:12px;">
+<div style="display:flex;align-items:center;">
 <div class="kb-box" data-feature="aimbot">None</div>
 <div class="p-switch" data-feature="aimbot"><div class="p-switch-handle"></div></div>
 </div>
@@ -1152,90 +917,68 @@ Info
 </div>
 <div class="p-sel-container">
 <div class="p-sel-header" id="aim-mode-header">
-<span style="font-weight:600; color:var(--color-text-bright);">Prediction Mode: <span id="aim-mode-val">Auto</span></span>
-<svg style="width:16px; height:16px; opacity:0.7;" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"/></svg>
+<span style="font-size:13px;font-weight:600;">Prediction Mode: <span id="aim-mode-val" style="color:var(--color-accent);">Auto</span></span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
 </div>
 <div class="p-sel-dropdown" id="aim-mode-drop">
 <div class="p-sel-item active" data-value="auto">Auto (Recommended)</div>
 <div class="p-sel-item" data-value="custom">Custom Parameters</div>
 </div>
 </div>
-<div id="custom-aim-settings" style="display:none; margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.08);">
+<div id="custom-aim-settings">
 <div class="slider-container">
 <div class="slider-label"><span>Latency Compensation</span><span id="latency-val">0.05</span></div>
-<div class="p-slider-track" id="latency-slider">
-<div class="p-slider-fill" style="width:25%;"></div>
-<div class="p-slider-thumb" style="left:25%;"></div>
-</div>
+<div class="p-slider-track" id="latency-slider"><div class="p-slider-fill"></div><div class="p-slider-thumb"></div></div>
 </div>
 <div class="slider-container">
 <div class="slider-label"><span>Velocity Boost</span><span id="velboost-val">1.0</span></div>
-<div class="p-slider-track" id="velboost-slider">
-<div class="p-slider-fill" style="width:50%;"></div>
-<div class="p-slider-thumb" style="left:50%;"></div>
-</div>
+<div class="p-slider-track" id="velboost-slider"><div class="p-slider-fill"></div><div class="p-slider-thumb"></div></div>
 </div>
 <div class="slider-container">
 <div class="slider-label"><span>Overshoot</span><span id="overshoot-val">0.4</span></div>
-<div class="p-slider-track" id="overshoot-slider">
-<div class="p-slider-fill" style="width:40%;"></div>
-<div class="p-slider-thumb" style="left:40%;"></div>
-</div>
+<div class="p-slider-track" id="overshoot-slider"><div class="p-slider-fill"></div><div class="p-slider-thumb"></div></div>
 </div>
 <div class="slider-container">
 <div class="slider-label"><span>Falloff Factor</span><span id="falloff-val">1.0</span></div>
-<div class="p-slider-track" id="falloff-slider">
-<div class="p-slider-fill" style="width:100%;"></div>
-<div class="p-slider-thumb" style="left:100%;"></div>
-</div>
+<div class="p-slider-track" id="falloff-slider"><div class="p-slider-fill"></div><div class="p-slider-thumb"></div></div>
 </div>
 </div>
 </div>
 <div class="p-groupbox">
-<div class="p-groupbox-title">Trigger Configuration</div>
+<div class="p-groupbox-title">🎯 Trigger Configuration</div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Enable TriggerBot</div>
 <div class="p-opt-desc">Auto-shoot when aimed at enemy</div>
 </div>
-<div style="display:flex; align-items:center; gap:12px;">
+<div style="display:flex;align-items:center;">
 <div class="kb-box" data-feature="triggerbot">None</div>
 <div class="p-switch" data-feature="triggerbot"><div class="p-switch-handle"></div></div>
 </div>
 </div>
 <div class="slider-container">
 <div class="slider-label"><span>Min Distance</span><span id="min-dist-val">0.5</span></div>
-<div class="p-slider-track" id="min-dist-slider">
-<div class="p-slider-fill" style="width:16.6%;"></div>
-<div class="p-slider-thumb" style="left:16.6%;"></div>
-</div>
+<div class="p-slider-track" id="min-dist-slider"><div class="p-slider-fill"></div><div class="p-slider-thumb"></div></div>
 </div>
 <div class="slider-container">
 <div class="slider-label"><span>Max Distance</span><span id="max-dist-val">2.8</span></div>
-<div class="p-slider-track" id="max-dist-slider">
-<div class="p-slider-fill" style="width:56%;"></div>
-<div class="p-slider-thumb" style="left:56%;"></div>
-</div>
+<div class="p-slider-track" id="max-dist-slider"><div class="p-slider-fill"></div><div class="p-slider-thumb"></div></div>
 </div>
 <div class="slider-container">
 <div class="slider-label"><span>Fire Delay (ms)</span><span id="fire-delay-val">60</span></div>
-<div class="p-slider-track" id="fire-delay-slider">
-<div class="p-slider-fill" style="width:25%;"></div>
-<div class="p-slider-thumb" style="left:25%;"></div>
+<div class="p-slider-track" id="fire-delay-slider"><div class="p-slider-fill"></div><div class="p-slider-thumb"></div></div>
 </div>
 </div>
 </div>
-</div>
-<!-- VISUALS TAB -->
-<div class="p-content-tab" id="visuals">
+<div class="p-content-tab" id="tab-visuals">
 <div class="p-groupbox">
-<div class="p-groupbox-title">Player Indicators</div>
+<div class="p-groupbox-title">👁️ Player Indicators</div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Holo Arrows</div>
 <div class="p-opt-desc">Neon arrows pointing to players</div>
 </div>
-<div style="display:flex; align-items:center; gap:12px;">
+<div style="display:flex;align-items:center;">
 <div class="kb-box" data-feature="arrows">None</div>
 <div class="p-switch" data-feature="arrows"><div class="p-switch-handle"></div></div>
 </div>
@@ -1249,141 +992,120 @@ Info
 </div>
 </div>
 <div class="p-groupbox">
-<div class="p-groupbox-title">Visual Enhancements</div>
+<div class="p-groupbox-title">✨ Visual Enhancements</div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">FullBright</div>
 <div class="p-opt-desc">Disable darkness/night overlay</div>
 </div>
-<div class="always-on-badge">Always ON</div>
+<div class="p-switch" data-feature="fullbright"><div class="p-switch-handle"></div></div>
 </div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Crosshair</div>
 <div class="p-opt-desc">Center screen aiming reticle</div>
 </div>
-<div style="display:flex; align-items:center; gap:12px;">
+<div style="display:flex;align-items:center;">
 <div class="kb-box" data-feature="crosshair">None</div>
 <div class="p-switch" data-feature="crosshair"><div class="p-switch-handle"></div></div>
 </div>
 </div>
 </div>
 </div>
-<!-- BUILDING TAB -->
-<div class="p-content-tab" id="building">
+<div class="p-content-tab" id="tab-building">
 <div class="p-groupbox">
-<div class="p-groupbox-title">Block Selector</div>
+<div class="p-groupbox-title">🔨 AutoCraft System</div>
+<div class="p-opt">
+<div class="p-opt-title">
+<div class="p-opt-main">Enable AutoCraft</div>
+<div class="p-opt-desc">Automatically craft items continuously</div>
+</div>
+<div style="display:flex;align-items:center;">
+<div class="kb-box" data-feature="autoCraft">None</div>
+<div class="p-switch" data-feature="autoCraft"><div class="p-switch-handle"></div></div>
+</div>
+</div>
+<div class="craft-category">
+<div class="craft-category-title">🛡️ Shields</div>
+<div class="craft-buttons-row">
+<button class="craft-type-btn" data-type="shield_wood">Wood</button>
+<button class="craft-type-btn" data-type="shield_stone">Stone</button>
+<button class="craft-type-btn" data-type="shield_gold">Gold</button>
+<button class="craft-type-btn" data-type="shield_diamond">Diamond</button>
+<button class="craft-type-btn" data-type="shield_adamant">Adamant</button>
+</div>
+</div>
+<div class="craft-category">
+<div class="craft-category-title">🏹 Ammunition</div>
+<div class="craft-buttons-row">
+<button class="craft-type-btn" data-type="ammo_bullet">Bullet</button>
+<button class="craft-type-btn" data-type="ammo_bolt">Bolt</button>
+<button class="craft-type-btn" data-type="ammo_arrow">Arrow</button>
+</div>
+</div>
+</div>
+<div class="p-groupbox">
+<div class="p-groupbox-title">🏗️ Block Selector</div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Enable Block Selector</div>
 <div class="p-opt-desc">Cycle spike walls with bind</div>
 </div>
-<div style="display:flex; align-items:center; gap:12px;">
+<div style="display:flex;align-items:center;">
 <div class="kb-box" data-feature="blockSelector">None</div>
 <div class="p-switch" data-feature="blockSelector"><div class="p-switch-handle"></div></div>
 </div>
 </div>
-<div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.08);">
-<div class="building-type">
-<span>Wooden spikes</span>
-<div class="p-switch" data-building="block" data-index="0"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Stone Spikes</span>
-<div class="p-switch" data-building="block" data-index="1"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Golden Spikes</span>
-<div class="p-switch" data-building="block" data-index="2"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Diamond Spikes</span>
-<div class="p-switch" data-building="block" data-index="3"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Adamantine spikes</span>
-<div class="p-switch" data-building="block" data-index="4"><div class="p-switch-handle"></div></div>
-</div>
-</div>
+<div class="building-type"><span>Wooden spikes</span><div class="p-switch" data-building="block" data-index="0"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Stone Spikes</span><div class="p-switch" data-building="block" data-index="1"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Golden Spikes</span><div class="p-switch" data-building="block" data-index="2"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Diamond Spikes</span><div class="p-switch" data-building="block" data-index="3"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Adamantine spikes</span><div class="p-switch" data-building="block" data-index="4"><div class="p-switch-handle"></div></div></div>
 </div>
 <div class="p-groupbox">
-<div class="p-groupbox-title">Wall Selector</div>
+<div class="p-groupbox-title">🧱 Wall Selector</div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Enable Wall Selector</div>
 <div class="p-opt-desc">Cycle walls with bind</div>
 </div>
-<div style="display:flex; align-items:center; gap:12px;">
+<div style="display:flex;align-items:center;">
 <div class="kb-box" data-feature="wallSelector">None</div>
 <div class="p-switch" data-feature="wallSelector"><div class="p-switch-handle"></div></div>
 </div>
 </div>
-<div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.08);">
-<div class="building-type">
-<span>Wooden Wall</span>
-<div class="p-switch" data-building="wall" data-index="0"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Stone Wall</span>
-<div class="p-switch" data-building="wall" data-index="1"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Golden Wall</span>
-<div class="p-switch" data-building="wall" data-index="2"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Diamond Wall</span>
-<div class="p-switch" data-building="wall" data-index="3"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Adamantine Wall</span>
-<div class="p-switch" data-building="wall" data-index="4"><div class="p-switch-handle"></div></div>
-</div>
-</div>
+<div class="building-type"><span>Wooden Wall</span><div class="p-switch" data-building="wall" data-index="0"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Stone Wall</span><div class="p-switch" data-building="wall" data-index="1"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Golden Wall</span><div class="p-switch" data-building="wall" data-index="2"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Diamond Wall</span><div class="p-switch" data-building="wall" data-index="3"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Adamantine Wall</span><div class="p-switch" data-building="wall" data-index="4"><div class="p-switch-handle"></div></div></div>
 </div>
 <div class="p-groupbox">
-<div class="p-groupbox-title">Turret Selector</div>
+<div class="p-groupbox-title">🔫 Turret Selector</div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Enable Turret Selector</div>
 <div class="p-opt-desc">Cycle turrets with bind</div>
 </div>
-<div style="display:flex; align-items:center; gap:12px;">
+<div style="display:flex;align-items:center;">
 <div class="kb-box" data-feature="turretSelector">None</div>
 <div class="p-switch" data-feature="turretSelector"><div class="p-switch-handle"></div></div>
 </div>
 </div>
-<div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.08);">
-<div class="building-type">
-<span>Wooden Turret</span>
-<div class="p-switch" data-building="turret" data-index="0"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Stone Turret</span>
-<div class="p-switch" data-building="turret" data-index="1"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Golden Turret</span>
-<div class="p-switch" data-building="turret" data-index="2"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Diamond Turret</span>
-<div class="p-switch" data-building="turret" data-index="3"><div class="p-switch-handle"></div></div>
-</div>
-<div class="building-type">
-<span>Adamantine Turret</span>
-<div class="p-switch" data-building="turret" data-index="4"><div class="p-switch-handle"></div></div>
-</div>
-</div>
+<div class="building-type"><span>Wooden Turret</span><div class="p-switch" data-building="turret" data-index="0"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Stone Turret</span><div class="p-switch" data-building="turret" data-index="1"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Golden Turret</span><div class="p-switch" data-building="turret" data-index="2"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Diamond Turret</span><div class="p-switch" data-building="turret" data-index="3"><div class="p-switch-handle"></div></div></div>
+<div class="building-type"><span>Adamantine Turret</span><div class="p-switch" data-building="turret" data-index="4"><div class="p-switch-handle"></div></div></div>
 </div>
 <div class="p-groupbox">
-<div class="p-groupbox-title">Trap & Booster Selector</div>
+<div class="p-groupbox-title">🪤 Trap & Booster Selector</div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Enable Trap Selector</div>
 <div class="p-opt-desc">Cycle traps with bind</div>
 </div>
-<div style="display:flex; align-items:center; gap:12px;">
+<div style="display:flex;align-items:center;">
 <div class="kb-box" data-feature="trapSelector">None</div>
 <div class="p-switch" data-feature="trapSelector"><div class="p-switch-handle"></div></div>
 </div>
@@ -1393,90 +1115,72 @@ Info
 <div class="p-opt-main">Enable Booster Selector</div>
 <div class="p-opt-desc">Cycle boosters/jumpers with bind</div>
 </div>
-<div style="display:flex; align-items:center; gap:12px;">
+<div style="display:flex;align-items:center;">
 <div class="kb-box" data-feature="boosterSelector">None</div>
 <div class="p-switch" data-feature="boosterSelector"><div class="p-switch-handle"></div></div>
 </div>
 </div>
 </div>
 </div>
-<!-- MISC TAB -->
-<div class="p-content-tab" id="misc">
+<div class="p-content-tab" id="tab-misc">
 <div class="p-groupbox">
-<div class="p-groupbox-title">Gameplay</div>
+<div class="p-groupbox-title">🎮 Gameplay</div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Fast Respawn</div>
 <div class="p-opt-desc">Instant respawn after death</div>
 </div>
-<div class="always-on-badge">Always ON</div>
+<div class="p-switch" data-feature="fastrespawn"><div class="p-switch-handle"></div></div>
 </div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Show FPS</div>
 <div class="p-opt-desc">Display frames per second counter</div>
 </div>
+<div style="display:flex;align-items:center;">
+<div class="kb-box" data-feature="showfps">None</div>
 <div class="p-switch" data-feature="showfps"><div class="p-switch-handle"></div></div>
 </div>
 </div>
+</div>
 <div class="p-groupbox">
-<div class="p-groupbox-title">Automation</div>
+<div class="p-groupbox-title">🏆 Automation</div>
 <div class="p-opt">
 <div class="p-opt-title">
 <div class="p-opt-main">Clan Spam</div>
 <div class="p-opt-desc">Auto-cycle clan name to "Interium"</div>
 </div>
-<div style="display:flex; align-items:center; gap:12px;">
+<div style="display:flex;align-items:center;">
 <div class="kb-box" data-feature="clanspam">None</div>
 <div class="p-switch" data-feature="clanspam"><div class="p-switch-handle"></div></div>
 </div>
 </div>
 <div class="slider-container">
 <div class="slider-label"><span>Spam Speed (ms)</span><span id="spam-speed-val">120</span></div>
-<div class="p-slider-track" id="spam-speed-slider">
-<div class="p-slider-fill" style="width:24%;"></div>
-<div class="p-slider-thumb" style="left:24%;"></div>
+<div class="p-slider-track" id="spam-speed-slider"><div class="p-slider-fill"></div><div class="p-slider-thumb"></div></div>
 </div>
 </div>
 </div>
-</div>
-<!-- INFO TAB -->
-<div class="p-content-tab" id="info">
-<div style="text-align:center; margin-bottom:25px; padding-top:10px;">
-<h1 style="font-family:var(--font-logo); font-size:42px; letter-spacing:8px; background:linear-gradient(90deg, #36ddff, #24e9ff, #00aaff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:0 0 20px rgba(36,233,255,0.5);">
-INTERIUM<span style="font-weight:400; font-family:var(--font-main); font-size:20px; letter-spacing:3px; opacity:0.6;">.CC</span>
-</h1>
-<div style="font-size:12px; color:rgba(180,230,255,0.85); letter-spacing:3px; text-transform:uppercase; font-weight:800; margin-top:8px;">
-v13.0.2 • Absolute Phantom
-</div>
-</div>
+<div class="p-content-tab" id="tab-info">
+<div class="p-groupbox">
+<div class="p-groupbox-title">📊 System Info</div>
 <div class="info-grid">
 <div class="info-card">
-<div class="info-title">
-<svg style="width:12px;height:12px;" viewBox="0 0 24 24" fill="currentColor"><path d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82L11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5L12,2.18L21,7.5V16.5Z"/></svg>
-System Info
-</div>
-<div class="info-row"><span class="info-label">Build Version</span><span class="info-value">v13.0.2</span></div>
-<div class="info-row"><span class="info-label">Last Update</span><span class="info-value">Feb 1, 2026</span></div>
-<div class="info-row"><span class="info-label">Client Status</span><span class="info-value" style="color:#00ff88;">Active</span></div>
-<div class="info-row"><span class="info-label">Detection Status</span><span class="info-value" style="color:#00ff88;">Undetected</span></div>
+<div class="info-title">⚙️ Build Version</div>
+<div class="info-row"><span class="info-label">Version</span><span class="info-value">v14.0.2</span></div>
+<div class="info-row"><span class="info-label">Last Update</span><span class="info-value">Mar 8, 2026</span></div>
+<div class="info-row"><span class="info-label">Client Status</span><span class="info-value">Active</span></div>
 </div>
 <div class="info-card">
-<div class="info-title">
-<svg style="width:12px;height:12px;" viewBox="0 0 24 24" fill="currentColor"><path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1Z"/></svg>
-Security
-</div>
+<div class="info-title">🔒 Detection Status</div>
 <div class="info-row"><span class="info-label">Anti-Cheat</span><span class="info-value">Bypassed</span></div>
 <div class="info-row"><span class="info-label">Memory Protection</span><span class="info-value">Enabled</span></div>
 <div class="info-row"><span class="info-label">Update Channel</span><span class="info-value">Stable</span></div>
-<div class="info-row"><span class="info-label">Encryption</span><span class="info-value">AES-256</span></div>
 </div>
 </div>
-<div class="p-groupbox" style="margin-top:20px; background:rgba(10,20,35,0.85); border-color:rgba(36,233,255,0.3);">
-<div style="font-size:12px; color:rgba(180,230,255,0.85); text-transform:uppercase; margin-bottom:18px; font-weight:800; display:flex; align-items:center; gap:8px;">
-<svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="currentColor"><path d="M20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12M22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2A10,10 0 0,1 22,12M14,11H10V8H14M14,14H10V13H14Z" /></svg>
-Support & Contacts
 </div>
+<div class="p-groupbox">
+<div class="p-groupbox-title">📞 Support & Contacts</div>
 <div class="contacts-grid">
 <div class="contact-item">
 <div class="contact-role">Lead Developer</div>
@@ -1486,11 +1190,9 @@ Support & Contacts
 <div class="contact-role">Tech Support</div>
 <div class="contact-name">donanton20</div>
 </div>
-</div>
-<div style="text-align:center; margin-top:20px; padding-top:15px; border-top:1px solid rgba(36,233,255,0.2); font-size:13px; color:rgba(200,230,255,0.9);">
-<div style="margin-bottom:8px; font-weight:600;">Discord Community</div>
-<div style="background:rgba(36,233,255,0.15); display:inline-block; padding:6px 20px; border-radius:30px; font-weight:700; letter-spacing:1px;">
-discord.gg/interium
+<div class="contact-item">
+<div class="contact-role">Discord</div>
+<div class="contact-name">discord.gg/interium</div>
 </div>
 </div>
 </div>
@@ -1516,9 +1218,19 @@ panel.style.transform = 'translate(-50%, -50%)';
 document.removeEventListener('click', handleOutsideClick);
 }
 };
+
 const handleOutsideClick = (e) => {
-if (panel && panel.classList.contains('show') && !panel.contains(e.target) && !e.target.closest('.p-header')) {
+if (panel && panel.classList.contains('show')) {
+// ✅ ИГНОРИРУЕМ КЛИКИ ПО КЛАН МЕНЮ И РЕЦЕПТАМ
+if (e.target.closest('.ingame_draggable_menu') || 
+e.target.closest('.ingame_menu') || 
+e.target.closest('.recipe_image_container') ||
+e.target.closest('#clan_menu')) {
+return;
+}
+if (!panel.contains(e.target) && !e.target.closest('.p-header')) {
 closeMenu();
+}
 }
 };
 
@@ -1549,7 +1261,6 @@ box.textContent = '...';
 bindHandlerCapture = (ev) => {
 ev.preventDefault();
 ev.stopPropagation();
-// ✅ ESC СБРАСЫВАЕТ БИНД НА NONE
 if (ev.code === 'Escape') {
 features[featureKey].bind = null;
 box.textContent = 'None';
@@ -1558,7 +1269,6 @@ document.removeEventListener('keydown', bindHandlerCapture, true);
 saveSettings();
 return;
 }
-// ✅ ПРОВЕРКА ВАЛИДНОСТИ КЛАВИШИ
 if (!VALID_BIND_KEYS.includes(ev.code)) {
 box.textContent = 'Invalid';
 setTimeout(() => {
@@ -1568,7 +1278,6 @@ box.classList.remove('waiting');
 document.removeEventListener('keydown', bindHandlerCapture, true);
 return;
 }
-// ✅ УСТАНОВКА БИНДА
 features[featureKey].bind = ev.code;
 box.textContent = formatBind(ev.code);
 box.classList.remove('waiting');
@@ -1602,16 +1311,16 @@ return code;
 //  ✅ ИНИЦИАЛИЗАЦИЯ МЕНЮ И ЗАГРУЗКА НАСТРОЕК
 // ────────────────────────────────────────────────
 const initMenu = () => {
-// Внедрение стилей
 const style = document.createElement('style');
 style.textContent = newMenuStyles;
 document.head.appendChild(style);
-// Внедрение меню
+
 const menuContainer = document.createElement('div');
 menuContainer.innerHTML = menuHtml.trim();
 document.body.appendChild(menuContainer);
+
 panel = document.querySelector('.premium-panel');
-// Перетаскивание панели
+
 let isDragging = false;
 let dragOffset = { x: 0, y: 0 };
 const header = panel.querySelector('.p-header');
@@ -1641,7 +1350,7 @@ panel.style.transform = 'translate(-50%, -50%)';
 }
 }
 });
-// Переключение вкладок
+
 document.querySelectorAll('.p-tab').forEach(tab => {
 tab.addEventListener('click', () => {
 document.querySelectorAll('.p-tab').forEach(t => t.classList.remove('active'));
@@ -1650,7 +1359,7 @@ tab.classList.add('active');
 document.getElementById(tab.dataset.tab).classList.add('active');
 });
 });
-// Выпадающий список режимов AimBot
+
 const aimModeHeader = document.getElementById('aim-mode-header');
 const aimModeDrop = document.getElementById('aim-mode-drop');
 const aimModeVal = document.getElementById('aim-mode-val');
@@ -1663,9 +1372,7 @@ item.addEventListener('click', () => {
 const value = item.dataset.value;
 features.aimbot.predictionMode = value;
 aimModeVal.textContent = value === 'auto' ? 'Auto' : 'Custom';
-// Обновление отображения кастомных настроек
 document.getElementById('custom-aim-settings').style.display = value === 'custom' ? 'block' : 'none';
-// Обновление активного элемента
 document.querySelectorAll('.p-sel-item').forEach(i => i.classList.remove('active'));
 item.classList.add('active');
 aimModeDrop.style.display = 'none';
@@ -1673,7 +1380,18 @@ aimModeHeader.classList.remove('active');
 showNotification(`AimBot mode set to ${value === 'auto' ? 'Auto' : 'Custom'}`, 'info');
 });
 });
-// Инициализация слайдеров
+
+// ✅ AUTOCRAFT TYPE BUTTONS
+document.querySelectorAll('.craft-type-btn').forEach(btn => {
+btn.addEventListener('click', () => {
+const type = btn.dataset.type;
+setAutoCraftType(type);
+document.querySelectorAll('.craft-type-btn').forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+showNotification(`AutoCraft type: ${type}`, 'info');
+});
+});
+
 function initSlider(sliderId, valueElement, min, max, step, onChange) {
 const slider = document.getElementById(sliderId);
 const fill = slider.querySelector('.p-slider-fill');
@@ -1686,7 +1404,6 @@ const value = min + (percent / 100) * (max - min);
 valDisplay.textContent = value.toFixed(step < 1 ? 2 : 0);
 onChange(value);
 };
-// Инициализация из настроек
 let initialValue;
 if (sliderId.includes('latency')) initialValue = features.aimbot.latencyComp;
 else if (sliderId.includes('velboost')) initialValue = features.aimbot.velocityBoost;
@@ -1699,7 +1416,6 @@ else if (sliderId.includes('spam-speed')) initialValue = features.clanspam.speed
 else initialValue = min;
 const initialPercent = ((initialValue - min) / (max - min)) * 100;
 updateSlider(initialPercent);
-// Управление мышью
 let isSliding = false;
 slider.addEventListener('mousedown', (e) => {
 isSliding = true;
@@ -1721,7 +1437,7 @@ showNotification(`${valDisplay.parentElement.previousElementSibling.textContent}
 }
 });
 }
-// Инициализация всех слайдеров
+
 initSlider('latency-slider', 'latency-val', 0, 0.2, 0.01, v => features.aimbot.latencyComp = v);
 initSlider('velboost-slider', 'velboost-val', 0.5, 2.0, 0.05, v => features.aimbot.velocityBoost = v);
 initSlider('overshoot-slider', 'overshoot-val', 0, 2.0, 0.1, v => features.aimbot.overshoot = v);
@@ -1730,30 +1446,28 @@ initSlider('min-dist-slider', 'min-dist-val', 0.1, 3.0, 0.1, v => features.trigg
 initSlider('max-dist-slider', 'max-dist-val', 0.5, 5.0, 0.1, v => features.triggerbot.maxDist = v);
 initSlider('fire-delay-slider', 'fire-delay-val', 30, 150, 5, v => features.triggerbot.fireDelay = v);
 initSlider('spam-speed-slider', 'spam-speed-val', 50, 500, 10, v => features.clanspam.speed = v);
-// Настройка биндовых блоков
+
 setupBindListeners();
-// Переключатели фич
+
 document.querySelectorAll('.p-switch[data-feature]').forEach(switchEl => {
 const featureKey = switchEl.dataset.feature;
 const kbBox = switchEl.parentElement.querySelector(`.kb-box[data-feature="${featureKey}"]`);
-// Инициализация состояния
 if (features[featureKey].enabled) switchEl.classList.add('active');
 if (kbBox) {
 kbBox.textContent = features[featureKey].bind ? formatBind(features[featureKey].bind) : 'None';
 }
-// Переключение
 switchEl.addEventListener('click', () => {
 const newState = !switchEl.classList.contains('active');
 switchEl.classList.toggle('active', newState);
 features[featureKey].enabled = newState;
-// Специфические действия
 if (featureKey === 'clanspam') newState ? startClanSpam() : stopClanSpam();
+if (featureKey === 'autoCraft') toggleAutoCraft();
 if (featureKey === 'showfps') fpsEl.style.display = newState ? 'block' : 'none';
 if (featureKey === 'crosshair') document.body.classList.toggle('crosshair-cursor', newState);
 showNotification(`${features[featureKey].name} ${newState ? 'enabled' : 'disabled'}`, newState ? 'enabled' : 'disabled');
 });
 });
-// Настройки (не фичи, а параметры)
+
 document.querySelectorAll('.p-switch[data-setting]').forEach(switchEl => {
 const [feature, setting] = switchEl.dataset.setting.split('.');
 if (features[feature][setting]) switchEl.classList.add('active');
@@ -1764,7 +1478,7 @@ features[feature][setting] = newState;
 showNotification(`${setting.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} ${newState ? 'enabled' : 'disabled'}`, 'info');
 });
 });
-// Селекторы блоков: переключатели типов
+
 document.querySelectorAll('.p-switch[data-building]').forEach(switchEl => {
 const type = switchEl.dataset.building;
 const index = parseInt(switchEl.dataset.index);
@@ -1775,9 +1489,7 @@ else if (type === 'turret') targetArray = turrets;
 else if (type === 'trap') targetArray = traps;
 else if (type === 'booster') targetArray = boosters;
 else return;
-// Инициализация состояния
 if (targetArray[index].enabled) switchEl.classList.add('active');
-// Переключение
 switchEl.addEventListener('click', () => {
 const newState = !switchEl.classList.contains('active');
 switchEl.classList.toggle('active', newState);
@@ -1785,7 +1497,7 @@ targetArray[index].enabled = newState;
 showNotification(`${targetArray[index].name} ${newState ? 'enabled' : 'disabled'}`, 'info');
 });
 });
-// Горячая клавиша Insert для переключения меню
+
 document.addEventListener('keydown', (e) => {
 if (e.code === 'Insert') {
 e.preventDefault();
@@ -1797,18 +1509,15 @@ setTimeout(() => panel.classList.add('show'), 10);
 document.addEventListener('click', handleOutsideClick);
 }
 }
-// Глобальные бинды для фич
 Object.entries(features).forEach(([key, config]) => {
 if (config.bind && e.code === config.bind && !e.repeat && !panel.classList.contains('show')) {
-// Always ON фичи не переключаем
 if (['fastrespawn', 'fullbright'].includes(key)) return;
-// Building macros: вызываем функцию переключения
 if (key === 'blockSelector') return selectNextBlock();
 if (key === 'wallSelector') return selectNextWall();
 if (key === 'turretSelector') return selectNextTurret();
 if (key === 'trapSelector') return selectNextTrap();
 if (key === 'boosterSelector') return selectNextBooster();
-// Обычные фичи
+if (key === 'autoCraft') return toggleAutoCraft();
 config.enabled = !config.enabled;
 const switchEl = document.querySelector(`.p-switch[data-feature="${key}"]`);
 if (switchEl) switchEl.classList.toggle('active', config.enabled);
@@ -1819,7 +1528,7 @@ showNotification(`${config.name} ${config.enabled ? 'enabled' : 'disabled'}`, co
 }
 });
 });
-// Обновление имени пользователя в меню
+
 const updateMenuUsername = () => {
 const usernameEl = document.getElementById('menu-username');
 const input = document.getElementById('input_username');
@@ -1827,41 +1536,37 @@ if (usernameEl && input?.value) {
 usernameEl.textContent = `User: ${input.value.trim() || 'doomed'}`;
 }
 };
-// Наблюдатель за полем ввода имени
 const usernameInput = document.getElementById('input_username');
 if (usernameInput) {
 updateMenuUsername();
 usernameInput.addEventListener('input', updateMenuUsername);
 }
-// Автообновление при загрузке страницы
 window.addEventListener('load', updateMenuUsername);
-// Инициализация состояния UI при загрузке
+
 setTimeout(() => {
-// Обновление всех переключателей из настроек
 document.querySelectorAll('.p-switch[data-feature]').forEach(switchEl => {
 const key = switchEl.dataset.feature;
 if (features[key].enabled) {
 switchEl.classList.add('active');
 }
 });
-// Обновление биндовых блоков
 document.querySelectorAll('.kb-box[data-feature]').forEach(box => {
 const key = box.dataset.feature;
 box.textContent = features[key].bind ? formatBind(features[key].bind) : 'None';
 });
-// Скрытие кастомных настроек AimBot если режим auto
 if (features.aimbot.predictionMode === 'auto') {
 document.getElementById('custom-aim-settings').style.display = 'none';
 document.querySelector('#aim-mode-drop .p-sel-item.active')?.classList.remove('active');
 document.querySelector(`#aim-mode-drop .p-sel-item[data-value="auto"]`).classList.add('active');
 aimModeVal.textContent = 'Auto';
 }
-// Отображение FPS если включено
 fpsEl.style.display = features.showfps.enabled ? 'block' : 'none';
 document.body.classList.toggle('crosshair-cursor', features.crosshair.enabled);
-// Запуск клан спама если включен
 if (features.clanspam.enabled) startClanSpam();
-// Инициализация переключателей типов блоков
+if (autoCraftEnabled) {
+const activeBtn = document.querySelector(`.craft-type-btn[data-type="${autoCraftType}"]`);
+if (activeBtn) activeBtn.classList.add('active');
+}
 [blocks, walls, turrets, traps, boosters].forEach(arr => {
 arr.forEach((item, idx) => {
 let type = arr === blocks ? 'block' : arr === walls ? 'wall' : arr === turrets ? 'turret' : arr === traps ? 'trap' : 'booster';
@@ -1877,7 +1582,7 @@ if (el && item.enabled) el.classList.add('active');
 // ────────────────────────────────────────────────
 if (document.readyState === 'loading') {
 document.addEventListener('DOMContentLoaded', () => {
-applyLobbyInstant(); // ✅ МГНОВЕННОЕ ПРИМЕНЕНИЕ ЛОББИ
+applyLobbyInstant();
 initMenu();
 });
 } else {
@@ -1892,11 +1597,11 @@ function findCanvas() {
 gameCanvas = document.querySelector('canvas');
 }
 setInterval(findCanvas, 800);
+
 function mainLoop() {
 findCanvas();
 const enemies = findAllEnemies();
 const nearest = findNearestEnemy();
-// Arrows
 if (features.arrows.enabled && myPos && gameCanvas) {
 setupArrowCanvas();
 const rect = gameCanvas.getBoundingClientRect();
@@ -1905,17 +1610,14 @@ drawAllArrows(rect.left + rect.width/2, rect.top + rect.height/2, filtered);
 } else if (arrowCtx) {
 arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
 }
-// AimBot & TriggerBot
 if (myPos && nearest) {
 if (features.aimbot.enabled) performAim(nearest);
 if (features.triggerbot.enabled) checkTrigger(nearest);
 }
 requestAnimationFrame(mainLoop);
 }
-// Запуск основного цикла
+
 requestAnimationFrame(mainLoop);
-// Инициализация состояния "Always ON" фич
 if (features.fullbright.enabled) fullBright();
-// Загрузка сохраненных настроек
 loadSettings();
 })();
