@@ -535,6 +535,7 @@ return rawSetTimeout(cb, ms, ...args);
 //  ✅ FULLBRIGHT (ALWAYS ON - БЕЗ ТУМБЛЕРА)
 // ────────────────────────────────────────────────
 const fullBright = () => {
+if (!features.fullbright.enabled) return;
 if (!window.PIXI_APP || !window.PIXI_APP.stage) return;
 const nightLayer = window.PIXI_APP.stage.children.find(c => c.name === "Night Lights");
 if (nightLayer) {
@@ -1637,6 +1638,6 @@ requestAnimationFrame(mainLoop);
 }
 
 requestAnimationFrame(mainLoop);
-if (features.fullbright.enabled) fullBright(); // ✅ FULLBRIGHT РАБОТАЕТ СРАЗУ
-loadSettings();
+loadSettings();                                // 1. СНАЧАЛА грузим настройки
+if (features.fullbright.enabled) fullBright(); // 2. ПОТОМ применяем FullBright с правильными данными
 })();
