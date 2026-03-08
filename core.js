@@ -1649,29 +1649,63 @@ const hack = () => {
 setInterval(hack, 1000);
 
 // ────────────────────────────────────────────────
-//  MAIN LOOP
+//  ✅ FINAL WORKING MAIN LOOP
 // ────────────────────────────────────────────────
 function mainLoop() {
-    if (typeof findCanvas === 'function') findCanvas();
-
-    const enemies = typeof findAllEnemies === 'function' ? findAllEnemies() : [];
-    const nearest = typeof findNearestEnemy === 'function' ? findNearestEnemy() : null;
-
-    if (features.arrows.enabled && myPos && gameCanvas) {
-        setupArrowCanvas();
-        const rect = gameCanvas.getBoundingClientRect();
-        const filtered = features.arrows.ignoreTeam ? enemies.filter(e => !e.teammate) : enemies;
-        drawAllArrows(rect.left + rect.width/2, rect.top + rect.height/2, filtered);
-    } else if (typeof arrowCtx !== 'undefined' && arrowCtx) {
-        arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
+    // 1. Гарантированный поиск канваса
+    if (!gameCanvas) {
+        gameCanvas = document.querySelector('canvas');
     }
 
+    // 2. Получение данных (безопасное)
+    const enemies = (typeof findAllEnemies === 'function') ? findAllEnemies() : [];
+    const nearest = (typeof findNearestEnemy === 'function') ? findNearestEnemy() : null;
+
+    // 3. ОТРИСОВКА СТРЕЛОЧЕК
+    // Проверяем существование всего пути до enabled
+    if (features && features.arrows && features.arrows.enabled && myPos && gameCanvas) {
+        if (typeof setupArrowCanvas === 'function') setupArrowCanvas();
+        
+        // Если инициализация прошла успешно
+        if (arrowCtx) {
+            const rect = gameCanvas.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            // Фильтрация союзников
+            const filtered = (features.arrows.ignoreTeam && enemies.length > 0) 
+                ? enemies.filter(e => !e.teammate) 
+                : enemies;
+            
+            if (typeof drawAllArrows === 'function') {
+                drawAllArrows(centerX, centerY, filtered);
+            }
+        }
+    } else {
+        // Безопасная очистка, если стрелки выключены
+        if (typeof arrowCtx !== 'undefined' && arrowCtx && arrowCanvas) {
+            arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
+        }
+    }
+
+    // 4. АИМБОТ
     if (myPos && nearest) {
-        if (features.aimbot.enabled) performAim(nearest);
-        if (features.triggerbot.enabled) checkTrigger(nearest);
+        if (features && features.aimbot && features.aimbot.enabled) {
+            if (typeof performAim === 'function') {
+                performAim(nearest);
+            }
+        }
+        if (features && features.triggerbot && features.triggerbot.enabled) {
+            if (typeof checkTrigger === 'function') {
+                checkTrigger(nearest);
+            }
+        }
     }
+
     requestAnimationFrame(mainLoop);
 }
 
+// Запуск основного цикла
 requestAnimationFrame(mainLoop);
+console.log('%c[Interium] Fix Applied: Aim & Arrows Synced.', 'color: #00ff00; font-weight: bold');
 })();
