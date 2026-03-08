@@ -739,40 +739,47 @@ return findAllEnemies().filter(e => !e.teammate)[0] || null;
 }
 
 // ────────────────────────────────────────────────
-//  CLAN SPAM
+//  ULTRA FAST CLAN SPAM (INTEGRATED)
 // ────────────────────────────────────────────────
-const interiumSeq = ["I ", "In ", "Int ", "Inte ", "Inter ", "Interi ", "Interiu ", "Interium ", "Interiu ", "Interi ", "Inter ", "Inte ", "Int ", "In ", "I "];
+const interiumSeq = ["I_______", "_N______", "__T_____", "___E____", "____R___", "_____I__", "______U_", "_______M", "INTERIUM"];
 let spamIndex = 0;
+
 function startClanSpam() {
-const input = document.getElementById('input_clan_name');
-const createBtn = document.getElementById('create_join_clan_button');
-const leaveBtn = document.getElementById('leave_clan_button');
-if (!input || !createBtn || !leaveBtn) return;
-stopClanSpam();
+    const input = document.getElementById('input_clan_name');
+    const createBtn = document.getElementById('create_join_clan_button');
+    const leaveBtn = document.getElementById('leave_clan_button');
 
-clanSpamInterval = setInterval(() => {
-const menu = document.querySelector('.interium-menu-container');
-if (menu && menu.style.display !== 'none') {
-return;
+    if (!input || !createBtn || !leaveBtn) return;
+
+    // Очищаем старый интервал (используем глобальную переменную без let)
+    if (clanSpamInterval) clearInterval(clanSpamInterval);
+
+    clanSpamInterval = setInterval(() => {
+        // Проверка тумблера и видимости меню
+        if (!features.clanspam.enabled) return;
+        const menu = document.querySelector('.interium-menu-container');
+        if (menu && menu.style.display !== 'none') return;
+
+        // МОМЕНТАЛЬНЫЙ ЦИКЛ
+        leaveBtn.click();
+
+        input.value = interiumSeq[spamIndex];
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        createBtn.click();
+
+        // Переходим к следующему кадру
+        spamIndex = (spamIndex + 1) % interiumSeq.length;
+
+    }, Math.max(features.clanspam.speed, 40));
 }
 
-input.value = interiumSeq[spamIndex];
-createBtn.click();
-
-setTimeout(() => {
-if (leaveBtn && features.clanspam.enabled) {
-leaveBtn.click();
-}
-}, 50);
-
-spamIndex = (spamIndex + 1) % interiumSeq.length;
-}, Math.max(features.clanspam.speed, 150));
-}
 function stopClanSpam() {
-if (clanSpamInterval) clearInterval(clanSpamInterval);
-clanSpamInterval = null;
+    if (clanSpamInterval) {
+        clearInterval(clanSpamInterval);
+        clanSpamInterval = null;
+    }
 }
-
 // ────────────────────────────────────────────────
 //  ARROWS
 // ────────────────────────────────────────────────
@@ -1815,4 +1822,5 @@ function mainLoop() {
 
 // Запуск основного цикла
 requestAnimationFrame(mainLoop);
+console.log('%c[Interium] Fix Applied: Aim & Arrows Synced.', 'color: #00ff00; font-weight: bold');
 })();
