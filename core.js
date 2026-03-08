@@ -535,7 +535,6 @@ return rawSetTimeout(cb, ms, ...args);
 //  ✅ FULLBRIGHT (ALWAYS ON - БЕЗ ТУМБЛЕРА)
 // ────────────────────────────────────────────────
 const fullBright = () => {
-if (!features.fullbright.enabled) return;
 if (!window.PIXI_APP || !window.PIXI_APP.stage) return;
 const nightLayer = window.PIXI_APP.stage.children.find(c => c.name === "Night Lights");
 if (nightLayer) {
@@ -1216,8 +1215,8 @@ document.removeEventListener('click', handleOutsideClick);
 
 const handleOutsideClick = (e) => {
 if (panel && panel.classList.contains('show')) {
-if (e.target.closest('.ingame_draggable_menu') || 
-e.target.closest('.ingame_menu') || 
+if (e.target.closest('.ingame_draggable_menu') ||
+e.target.closest('.ingame_menu') ||
 e.target.closest('.recipe_image_container') ||
 e.target.closest('#clan_menu')) {
 return;
@@ -1611,39 +1610,62 @@ initMenu();
 }
 
 // ────────────────────────────────────────────────
-//  CANVAS FINDER + MAIN LOOP
+//  ULTIMATE CONSOLE-STYLE FULLBRIGHT
 // ────────────────────────────────────────────────
-function findCanvas() {
-    gameCanvas = document.querySelector('canvas');
-}
-setInterval(findCanvas, 800);
 
-function mainLoop() {
-    findCanvas();
+const hack = () => {
+    // Пытаемся найти реальное окно игры, где лежит PIXI
+    const targetWindow = window.__PIXI_APP__ ? window : (window.unsafeWindow || window.top);
 
-    // ✅ FULLBRIGHT (из core (2).js)
-    if (gameCanvas) {
-        if (features.fullbright && features.fullbright.enabled) {
-            gameCanvas.style.filter = 'brightness(2) contrast(1.1)'; 
-        } else {
-            gameCanvas.style.filter = ''; 
+    if (!features.fullbright.enabled) {
+        if (targetWindow.__PIXI_APP__ && targetWindow.__PIXI_APP__.stage) {
+            const nl = targetWindow.__PIXI_APP__.stage.children.find(c => c.name === "Night Lights");
+            if (nl) nl.visible = true;
         }
+        return;
     }
 
-    const enemies = findAllEnemies();
-    const nearest = findNearestEnemy();
+    if (!targetWindow.__PIXI_APP__ || !targetWindow.__PIXI_APP__.stage) return;
 
-    // Arrows
+    // ТОТ САМЫЙ КОД, КОТОРЫЙ ТЫ КИДАЛ (один в один)
+    const nightLights = targetWindow.__PIXI_APP__.stage.children.find(c => c.name === "Night Lights");
+
+    if (nightLights) {
+        // 1. Прячем сам слой
+        nightLights.visible = false;
+
+        // 2. Ищем шейдер
+        if (nightLights.filters) {
+            nightLights.filters.forEach(f => {
+                if (f.uniforms && f.uniforms.maxOpacity !== undefined) {
+                    f.uniforms.maxOpacity = 0; // Тьма в ноль
+                }
+            });
+        }
+    }
+};
+
+// Запускаем интервал точно так же, как в твоем примере
+setInterval(hack, 1000);
+
+// ────────────────────────────────────────────────
+//  MAIN LOOP
+// ────────────────────────────────────────────────
+function mainLoop() {
+    if (typeof findCanvas === 'function') findCanvas();
+
+    const enemies = typeof findAllEnemies === 'function' ? findAllEnemies() : [];
+    const nearest = typeof findNearestEnemy === 'function' ? findNearestEnemy() : null;
+
     if (features.arrows.enabled && myPos && gameCanvas) {
         setupArrowCanvas();
         const rect = gameCanvas.getBoundingClientRect();
         const filtered = features.arrows.ignoreTeam ? enemies.filter(e => !e.teammate) : enemies;
         drawAllArrows(rect.left + rect.width/2, rect.top + rect.height/2, filtered);
-    } else if (arrowCtx) {
+    } else if (typeof arrowCtx !== 'undefined' && arrowCtx) {
         arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
     }
 
-    // AimBot & TriggerBot
     if (myPos && nearest) {
         if (features.aimbot.enabled) performAim(nearest);
         if (features.triggerbot.enabled) checkTrigger(nearest);
@@ -1651,7 +1673,5 @@ function mainLoop() {
     requestAnimationFrame(mainLoop);
 }
 
-// Стартуем цикл
 requestAnimationFrame(mainLoop);
-
-})(); // <--- ВОТ ЭТА СКОБКА ОБЯЗАТЕЛЬНА, ОНА ЗАКРЫВАЕТ ВЕСЬ СКРИПТ
+})();
