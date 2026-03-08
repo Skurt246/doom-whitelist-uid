@@ -1619,25 +1619,34 @@ gameCanvas = document.querySelector('canvas');
 setInterval(findCanvas, 800);
 
 function mainLoop() {
-findCanvas();
-const enemies = findAllEnemies();
-const nearest = findNearestEnemy();
-if (features.arrows.enabled && myPos && gameCanvas) {
-setupArrowCanvas();
-const rect = gameCanvas.getBoundingClientRect();
-const filtered = features.arrows.ignoreTeam ? enemies.filter(e => !e.teammate) : enemies;
-drawAllArrows(rect.left + rect.width/2, rect.top + rect.height/2, filtered);
-} else if (arrowCtx) {
-arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
-}
-if (myPos && nearest) {
-if (features.aimbot.enabled) performAim(nearest);
-if (features.triggerbot.enabled) checkTrigger(nearest);
-}
-requestAnimationFrame(mainLoop);
-}
+    findCanvas();
 
-requestAnimationFrame(mainLoop);
-loadSettings();                                // 1. СНАЧАЛА грузим настройки
-if (features.fullbright.enabled) fullBright(); // 2. ПОТОМ применяем FullBright с правильными данными
-})();
+    // ✅ ВОЗВРАЩАЕМ FULLBRIGHT (из core (2).js)
+    if (gameCanvas) {
+        if (features.fullbright && features.fullbright.enabled) {
+            gameCanvas.style.filter = 'brightness(2) contrast(1.1)'; 
+        } else {
+            gameCanvas.style.filter = ''; 
+        }
+    }
+
+    const enemies = findAllEnemies();
+    const nearest = findNearestEnemy();
+
+    // Arrows
+    if (features.arrows.enabled && myPos && gameCanvas) {
+        setupArrowCanvas();
+        const rect = gameCanvas.getBoundingClientRect();
+        const filtered = features.arrows.ignoreTeam ? enemies.filter(e => !e.teammate) : enemies;
+        drawAllArrows(rect.left + rect.width/2, rect.top + rect.height/2, filtered);
+    } else if (arrowCtx) {
+        arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
+    }
+
+    // AimBot & TriggerBot
+    if (myPos && nearest) {
+        if (features.aimbot.enabled) performAim(nearest);
+        if (features.triggerbot.enabled) checkTrigger(nearest);
+    }
+    requestAnimationFrame(mainLoop);
+}
