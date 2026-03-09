@@ -103,36 +103,22 @@
                 }
             }
         }, 3000);
+
         // ОБЪЯВЛЕНИЯ (Вывод сообщения от админа на экран)
-
         db.ref('broadcast/message').on('value', (snapshot) => {
-
             const msg = snapshot.val();
-
             if (msg) showInGameNotification(msg);
-
         });
-
     }
-
-
 
     // Рендер уведомления в игре
-
     function showInGameNotification(text) {
-
         const div = document.createElement('div');
-
         div.style = "position:fixed;top:10%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.9);color:#00e5ff;border:2px solid #00e5ff;padding:15px 30px;z-index:1000000;border-radius:8px;text-align:center;font-family:monospace;box-shadow:0 0 15px rgba(0,229,255,0.5);pointer-events:none;";
-
         div.innerHTML = `<b style="color:#ff0055">SYSTEM NOTIFICATION</b><br>${text}`;
-
         document.body.appendChild(div);
-
         setTimeout(() => div.remove(), 7000);
-
     }
-
 })();
     // ────────────────────────────────────────────────
     //  ✅ MSGPACK ДЕКОДЕР
