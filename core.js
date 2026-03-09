@@ -788,7 +788,7 @@ updateFPS();
 const notifContainer = document.createElement('div');
 notifContainer.id = 'notification-container';
 // Сместил чуть выше и сделал отступ поменьше
-notifContainer.style.cssText = `position: fixed; bottom: 30px; left: 20px; z-index: 1000000; display: flex; flex-direction: column; gap: 8px; pointer-events: none;`;
+notifContainer.style.cssText = `position: fixed; bottom: 80px; left: 20px; z-index: 1000000; display: flex; flex-direction: column; gap: 8px; pointer-events: none;`;
 document.documentElement.appendChild(notifContainer);
 
 const notifStyle = document.createElement('style');
