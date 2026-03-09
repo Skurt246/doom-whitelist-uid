@@ -783,91 +783,32 @@ requestAnimationFrame(updateFPS);
 updateFPS();
 
 // ────────────────────────────────────────────────
-//  ✅ MODERN COMPACT NOTIFICATIONS (GLASS 2.0)
+//  ✅ NOTIFICATIONS
 // ────────────────────────────────────────────────
 const notifContainer = document.createElement('div');
 notifContainer.id = 'notification-container';
-// Сместил чуть выше и сделал отступ поменьше
-notifContainer.style.cssText = `position: fixed; bottom: 70px; left: 20px; z-index: 1000000; display: flex; flex-direction: column; gap: 8px; pointer-events: none;`;
+notifContainer.style.cssText = `position: fixed; bottom: 20px; left: 20px; z-index: 999999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;`;
 document.documentElement.appendChild(notifContainer);
-
 const notifStyle = document.createElement('style');
-notifStyle.textContent = `
-    .interium-notif {
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(36, 233, 255, 0.2);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-    }
-    .notif-icon {
-        display: flex; align-items: center; justify-content: center;
-        width: 18px; height: 18px; border-radius: 4px; font-size: 9px;
-        font-weight: 900; text-transform: uppercase;
-    }
-`;
+notifStyle.textContent = `.notification { transition: all .4s ease !important; } .notification.show { opacity: 1 !important; transform: translateX(0) scale(1) !important; } @keyframes fpsPulse { 0%, 100% { box-shadow: 0 0 14px rgba(36,233,255,.5); } 50% { box-shadow: 0 0 22px rgba(36,233,255,.8); } }`;
 document.head.appendChild(notifStyle);
-
 function showNotification(text, type = 'info') {
-    const n = document.createElement('div');
-    n.className = 'interium-notif';
-
-    // Цветовые схемы для типов
-    const colors = {
-        enabled: { bg: 'rgba(16, 185, 129, 0.15)', accent: '#10b981', label: 'ON' },
-        disabled: { bg: 'rgba(239, 68, 68, 0.15)', accent: '#ef4444', label: 'OFF' },
-        info: { bg: 'rgba(36, 233, 255, 0.1)', accent: '#24e9ff', label: 'i' }
-    };
-    const config = colors[type] || colors.info;
-
-    n.style.cssText = `
-        background: rgba(10, 15, 25, 0.85);
-        color: #fff;
-        padding: 8px 14px;
-        border-radius: 8px;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        min-width: 180px;
-        max-width: 280px;
-        opacity: 0;
-        transform: translateX(-30px) scale(0.9);
-        pointer-events: auto;
-        border-left: 3px solid ${config.accent};
-    `;
-
-    n.innerHTML = `
-        <div class="notif-icon" style="background: ${config.bg}; color: ${config.accent}; border: 1px solid ${config.accent}44;">
-            ${config.label}
-        </div>
-        <div style="letter-spacing: 0.5px; font-weight: 500;">${text}</div>
-    `;
-
-    notifContainer.appendChild(n);
-
-    // Появление
-    setTimeout(() => {
-        n.style.opacity = '1';
-        n.style.transform = 'translateX(0) scale(1)';
-    }, 50);
-
-    // Удаление через 4 секунды (сделал дольше, как ты просил)
-    const hideTimeout = setTimeout(() => {
-        n.style.opacity = '0';
-        n.style.transform = 'translateX(-20px) scale(0.95)';
-        n.style.filter = 'blur(4px)';
-        setTimeout(() => n.remove(), 500);
-    }, 4000);
-
-    // Закрытие при клике
-    n.onclick = () => {
-        clearTimeout(hideTimeout);
-        n.style.opacity = '0';
-        setTimeout(() => n.remove(), 300);
-    };
+const n = document.createElement('div');
+n.className = `notification ${type} interium-notification`;
+n.style.cssText = `background: linear-gradient(135deg, rgba(15,25,45,.97), rgba(27,38,59,.97)); color: #eafdff; padding: 12px 18px; border-radius: 12px; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600; box-shadow: 0 0 24px rgba(36,233,255,.5); border-left: 4px solid #24e9ff; opacity: 0; transform: translateX(-120px) scale(.92); transition: all .4s ease; display: flex; align-items: center; gap: 12px; min-width: 260px; pointer-events: auto;`;
+n.innerHTML = `<div style="width:24px;height:24px;background:#24e9ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0f1a2b;font-weight:bold;box-shadow:0 0 12px #24e9ff99;">${type==='enabled'?'ON':type==='disabled'?'OFF':'i'}</div><div>${text}</div>`;
+notifContainer.appendChild(n);
+setTimeout(() => {
+n.style.opacity = '1';
+n.style.transform = 'translateX(0) scale(1)';
+}, 10);
+setTimeout(() => {
+n.style.opacity = '0';
+n.style.transform = 'translateX(-120px) scale(.92)';
+setTimeout(() => n.remove(), 450);
+}, 1800);
 }
+
 // ────────────────────────────────────────────────
 //  UTILITIES
 // ────────────────────────────────────────────────
@@ -942,135 +883,98 @@ function stopClanSpam() {
         clanSpamInterval = null;
     }
 }
-
-
 // ────────────────────────────────────────────────
-// ✅ INTERIUM ULTRA GLASS 2.0: ELITE ARROW ENGINE (FULL VERSION)
+//  ARROWS
 // ────────────────────────────────────────────────
 function setupArrowCanvas() {
-    if (!arrowCanvas) {
-        arrowCanvas = document.createElement('canvas');
-        arrowCanvas.id = "interium-arrows-layer";
-        // Ставим z-index на максимум и фиксируем позицию
-        arrowCanvas.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;z-index:999999 !important;';
-        document.documentElement.appendChild(arrowCanvas);
-        arrowCtx = arrowCanvas.getContext('2d');
-    }
-    if (arrowCanvas.width !== window.innerWidth || arrowCanvas.height !== window.innerHeight) {
-        arrowCanvas.width = window.innerWidth;
-        arrowCanvas.height = window.innerHeight;
-    }
+if (!arrowCanvas) {
+arrowCanvas = document.createElement('canvas');
+arrowCanvas.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;z-index:999998';
+document.documentElement.appendChild(arrowCanvas);
+arrowCtx = arrowCanvas.getContext('2d');
+}
+arrowCanvas.width = innerWidth;
+arrowCanvas.height = innerHeight;
 }
 
 function drawGlowArrow(cx, cy, angle, dist, nick, color) {
-    if (!arrowCtx) return;
-
-    // Константы (берем твои, но с запасом)
-    const _off = ARROW_OFFSET || 60;
-    const _len = ARROW_LEN || 20;
-    const _wid = ARROW_WIDTH || 22;
-
-    const baseX = cx + Math.cos(angle) * _off;
-    const baseY = cy + Math.sin(angle) * _off;
-    const tipX = baseX + Math.cos(angle) * _len;
-    const tipY = baseY + Math.sin(angle) * _len;
-
-    // Вычисляем крылья (более острый угол для агрессивного вида)
-    const leftX = baseX + Math.cos(angle + Math.PI * 0.78) * (_wid / 2);
-    const leftY = baseY + Math.sin(angle + Math.PI * 0.78) * (_wid / 2);
-    const rightX = baseX + Math.cos(angle - Math.PI * 0.78) * (_wid / 2);
-    const rightY = baseY + Math.sin(angle - Math.PI * 0.78) * (_wid / 2);
-
-    // Цветовая схема: Neon Pink (Enemy) / Cyber Blue (Team)
-    const isEnemy = (color === "#ff3366" || color === "#ff3141");
-    const accent = isEnemy ? "#ff2d55" : "#00ccff";
-    const glow = isEnemy ? "rgba(255, 45, 85, 0.4)" : "rgba(0, 204, 255, 0.4)";
-
-    arrowCtx.save();
-
-    // 1. ВНЕШНЕЕ СВЕЧЕНИЕ (BLOOM EFFECT)
-    arrowCtx.shadowColor = accent;
-    arrowCtx.shadowBlur = 15;
-    arrowCtx.beginPath();
-    arrowCtx.moveTo(tipX, tipY);
-    arrowCtx.lineTo(leftX, leftY);
-    arrowCtx.lineTo(rightX, rightY);
-    arrowCtx.closePath();
-
-    // Рисуем основной неоновый контур
-    arrowCtx.strokeStyle = accent;
-    arrowCtx.lineWidth = 2.5;
-    arrowCtx.lineJoin = "round";
-    arrowCtx.stroke();
-
-    // 2. ВНУТРЕННЕЕ ЗАПОЛНЕНИЕ (GLASS EFFECT)
-    arrowCtx.shadowBlur = 0; // Отключаем тень для заливки
-    arrowCtx.fillStyle = "rgba(255, 255, 255, 0.1)";
-    arrowCtx.fill();
-
-    // 3. ТЕКСТ ДИСТАНЦИИ (Над стрелкой)
-    arrowCtx.font = "900 11px 'Orbitron', sans-serif";
-    arrowCtx.textAlign = "center";
-    arrowCtx.fillStyle = "#fff";
-    // Маленькая черная обводка для читаемости
-    arrowCtx.strokeStyle = "rgba(0,0,0,0.8)";
-    arrowCtx.lineWidth = 2;
-    arrowCtx.strokeText(Math.round(dist) + "m", baseX, baseY - 12);
-    arrowCtx.fillText(Math.round(dist) + "m", baseX, baseY - 12);
-
-    // 4. ПАНЕЛЬ НИКА (ELITE GLASS STYLE)
-    const name = (nick || "UNKNOWN").toUpperCase();
-    arrowCtx.font = "800 10px 'Orbitron', sans-serif";
-    const tw = arrowCtx.measureText(name).width;
-
-    const rectW = tw + 16;
-    const rectH = 16;
-    const rx = baseX - rectW / 2;
-    const ry = baseY + 12;
-
-    // Основная подложка (Dark Glass)
-    arrowCtx.fillStyle = "rgba(10, 12, 18, 0.85)";
-    // Рисуем прямоугольник вручную (для стабильности вместо roundRect)
-    arrowCtx.fillRect(rx, ry, rectW, rectH);
-
-    // Акцентная полоска слева (как в премиум читах)
-    arrowCtx.fillStyle = accent;
-    arrowCtx.fillRect(rx, ry, 3, rectH);
-
-    // Тонкая рамка всей плашки
-    arrowCtx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-    arrowCtx.lineWidth = 1;
-    arrowCtx.strokeRect(rx, ry, rectW, rectH);
-
-    // 5. САМ НИКНЕЙМ
-    arrowCtx.fillStyle = "#fff";
-    arrowCtx.textBaseline = "middle";
-    // Легкое свечение самого текста
-    arrowCtx.shadowColor = accent;
-    arrowCtx.shadowBlur = 5;
-    arrowCtx.fillText(name, baseX + 1.5, ry + rectH / 2 + 1);
-
-    arrowCtx.restore();
+if (!arrowCtx) return;
+const baseX = cx + Math.cos(angle) * ARROW_OFFSET;
+const baseY = cy + Math.sin(angle) * ARROW_OFFSET;
+const tipX = baseX + Math.cos(angle) * ARROW_LEN;
+const tipY = baseY + Math.sin(angle) * ARROW_LEN;
+const leftX = baseX + Math.cos(angle + Math.PI * 0.75) * (ARROW_WIDTH/2);
+const leftY = baseY + Math.sin(angle + Math.PI * 0.75) * (ARROW_WIDTH/2);
+const rightX = baseX + Math.cos(angle - Math.PI * 0.75) * (ARROW_WIDTH/2);
+const rightY = baseY + Math.sin(angle - Math.PI * 0.75) * (ARROW_WIDTH/2);
+let fill, glow, textBg;
+if (color === "#ff3366") {
+fill = "#ff3141"; glow = "#ff0a54"; textBg = "#ff2233dd";
+} else {
+fill = "#1a5fb4"; glow = "#0a4a9a"; textBg = "#1a5fb4dd";
+}
+arrowCtx.save();
+arrowCtx.globalAlpha = 0.48;
+arrowCtx.shadowColor = glow;
+arrowCtx.shadowBlur = 26;
+arrowCtx.beginPath();
+arrowCtx.moveTo(tipX, tipY);
+arrowCtx.lineTo(leftX, leftY);
+arrowCtx.lineTo(rightX, rightY);
+arrowCtx.closePath();
+arrowCtx.fillStyle = glow;
+arrowCtx.fill();
+arrowCtx.globalAlpha = 0.94;
+arrowCtx.shadowBlur = 0;
+arrowCtx.fillStyle = fill;
+arrowCtx.beginPath();
+arrowCtx.moveTo(tipX, tipY);
+arrowCtx.lineTo(leftX, leftY);
+arrowCtx.lineTo(rightX, rightY);
+arrowCtx.closePath();
+arrowCtx.fill();
+arrowCtx.strokeStyle = "#000";
+arrowCtx.lineWidth = 1.4;
+arrowCtx.lineJoin = "round";
+arrowCtx.stroke();
+arrowCtx.font = 'bold 13px Roboto Mono';
+arrowCtx.textAlign = 'center';
+arrowCtx.fillStyle = '#fff';
+arrowCtx.shadowColor = glow;
+arrowCtx.shadowBlur = 8;
+arrowCtx.fillText(`${Math.round(dist)}m`, baseX, baseY - 12);
+const baseFontSize = 12;
+const fontSize = Math.max(9, baseFontSize * 0.8);
+arrowCtx.font = `bold ${fontSize}px Orbitron`;
+const nickW = arrowCtx.measureText(nick).width;
+const pad = 8 * 0.8;
+const w = Math.max(48 * 0.8, nickW + pad * 2);
+const h = 18 * 0.8;
+const rectX = baseX - w / 2;
+const rectY = baseY + 12 + 4;
+arrowCtx.fillStyle = textBg;
+arrowCtx.beginPath();
+arrowCtx.roundRect(rectX, rectY, w, h, 4);
+arrowCtx.fill();
+arrowCtx.strokeStyle = "#000";
+arrowCtx.lineWidth = 1.1;
+arrowCtx.stroke();
+arrowCtx.fillStyle = "#fff";
+arrowCtx.shadowBlur = 0;
+arrowCtx.textBaseline = "middle";
+arrowCtx.fillText(nick, baseX, rectY + h/2 + 0.5);
+arrowCtx.restore();
 }
 
 function drawAllArrows(cx, cy, enemies) {
-    if (!arrowCtx) return;
-
-    // Очистка с поддержкой прозрачности
-    arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
-
-    if (!enemies || enemies.length === 0) return;
-
-    enemies.forEach(e => {
-        // Условия из твоего конфига
-        if (features.arrows.ignoreTeam && e.teammate) return;
-
-        const color = e.teammate ? "#45b4ff" : "#ff3366";
-        const angle = Math.atan2(e.pos[1] - myPos[1], e.pos[0] - myPos[0]);
-
-        drawGlowArrow(cx, cy, angle, e.dist, e.nick, color);
-    });
+if (!arrowCtx) return;
+arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
+enemies.forEach(e => {
+const color = e.teammate ? "#45b4ff" : "#ff3366";
+drawGlowArrow(cx, cy, Math.atan2(e.pos[1]-myPos[1], e.pos[0]-myPos[0]), e.dist, e.nick, color);
+});
 }
+
 // ────────────────────────────────────────────────
 //  AIMBOT + TRIGGERBOT
 // ────────────────────────────────────────────────
@@ -1278,7 +1182,7 @@ Info
 <div class="p-groupbox-title">👁️ Player Indicators</div>
 <div class="p-opt">
 <div class="p-opt-title">
-<div class="p-opt-main">Arrows</div>
+<div class="p-opt-main">Holo Arrows</div>
 <div class="p-opt-desc">Neon arrows pointing to players</div>
 </div>
 <div style="display:flex;align-items:center;">
@@ -1962,115 +1866,61 @@ const hack = () => {
 // Запускаем интервал точно так же, как в твоем примере
 setInterval(hack, 1000);
 
-
-//  ✅ FINAL WORKING MAIN LOOP
-
 // ────────────────────────────────────────────────
-
+//  ✅ FINAL WORKING MAIN LOOP
+// ────────────────────────────────────────────────
 function mainLoop() {
-
     // 1. Гарантированный поиск канваса
-
     if (!gameCanvas) {
-
         gameCanvas = document.querySelector('canvas');
-
     }
-
-
 
     // 2. Получение данных (безопасное)
-
     const enemies = (typeof findAllEnemies === 'function') ? findAllEnemies() : [];
-
     const nearest = (typeof findNearestEnemy === 'function') ? findNearestEnemy() : null;
 
-
-
     // 3. ОТРИСОВКА СТРЕЛОЧЕК
-
     // Проверяем существование всего пути до enabled
-
     if (features && features.arrows && features.arrows.enabled && myPos && gameCanvas) {
-
         if (typeof setupArrowCanvas === 'function') setupArrowCanvas();
 
-
-
         // Если инициализация прошла успешно
-
         if (arrowCtx) {
-
             const rect = gameCanvas.getBoundingClientRect();
-
             const centerX = rect.left + rect.width / 2;
-
             const centerY = rect.top + rect.height / 2;
 
-
-
             // Фильтрация союзников
-
             const filtered = (features.arrows.ignoreTeam && enemies.length > 0)
-
                 ? enemies.filter(e => !e.teammate)
-
                 : enemies;
 
-
-
             if (typeof drawAllArrows === 'function') {
-
                 drawAllArrows(centerX, centerY, filtered);
-
             }
-
         }
-
     } else {
-
         // Безопасная очистка, если стрелки выключены
-
         if (typeof arrowCtx !== 'undefined' && arrowCtx && arrowCanvas) {
-
             arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
-
         }
-
     }
-
-
 
     // 4. АИМБОТ
-
     if (myPos && nearest) {
-
         if (features && features.aimbot && features.aimbot.enabled) {
-
             if (typeof performAim === 'function') {
-
                 performAim(nearest);
-
             }
-
         }
-
         if (features && features.triggerbot && features.triggerbot.enabled) {
-
             if (typeof checkTrigger === 'function') {
-
                 checkTrigger(nearest);
-
             }
-
         }
-
     }
 
-
-
     requestAnimationFrame(mainLoop);
-
 }
 
 // Запуск основного цикла
