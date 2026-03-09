@@ -1613,14 +1613,21 @@ if (code.startsWith('Key')) return code.replace('Key', '');
 if (code.startsWith('Numpad')) return 'Num' + code.replace('Numpad', '');
 return code;
 };
+
+// ────────────────────────────────────────────────
+//  ✅ ИНИЦИАЛИЗАЦИЯ МЕНЮ
+// ────────────────────────────────────────────────
 const initMenu = () => {
 const style = document.createElement('style');
 style.textContent = newMenuStyles;
 document.head.appendChild(style);
+
 const menuContainer = document.createElement('div');
 menuContainer.innerHTML = menuHtml.trim();
 document.body.appendChild(menuContainer);
+
 panel = document.querySelector('.premium-panel');
+
 let isDragging = false;
 let dragOffset = { x: 0, y: 0 };
 const header = panel.querySelector('.p-header');
@@ -1650,6 +1657,7 @@ panel.style.transform = 'translate(-50%, -50%)';
 }
 }
 });
+
 document.querySelectorAll('.p-tab').forEach(tab => {
 tab.addEventListener('click', () => {
 document.querySelectorAll('.p-tab').forEach(t => t.classList.remove('active'));
@@ -1658,6 +1666,7 @@ tab.classList.add('active');
 document.getElementById(tab.dataset.tab).classList.add('active');
 });
 });
+
 const aimModeHeader = document.getElementById('aim-mode-header');
 const aimModeDrop = document.getElementById('aim-mode-drop');
 const aimModeVal = document.getElementById('aim-mode-val');
@@ -1678,6 +1687,8 @@ aimModeHeader.classList.remove('active');
 showNotification(`AimBot mode set to ${value === 'auto' ? 'Auto' : 'Custom'}`, 'info');
 });
 });
+
+// ✅ AUTOCRAFT КНОПКИ
 document.querySelectorAll('.autocraft-btn').forEach(btn => {
 btn.addEventListener('click', () => {
 const type = btn.dataset.type;
@@ -1688,6 +1699,7 @@ updateAutoCraftStatus();
 showNotification(`AutoCraft: ${autoCraftNames[type]}`, 'info');
 });
 });
+
 function updateAutoCraftStatus() {
 const statusDot = document.getElementById('autocraft-status-dot');
 const statusText = document.getElementById('autocraft-status-text');
@@ -1705,6 +1717,7 @@ statusText.style.color = '#ff4444';
 selectedItem.textContent = autoCraftNames[autoCraftType];
 }
 }
+
 function initSlider(sliderId, valueElement, min, max, step, onChange) {
 const slider = document.getElementById(sliderId);
 const fill = slider.querySelector('.p-slider-fill');
@@ -1750,6 +1763,7 @@ showNotification(`${valDisplay.parentElement.previousElementSibling.textContent}
 }
 });
 }
+
 initSlider('latency-slider', 'latency-val', 0, 0.2, 0.01, v => features.aimbot.latencyComp = v);
 initSlider('velboost-slider', 'velboost-val', 0.5, 2.0, 0.05, v => features.aimbot.velocityBoost = v);
 initSlider('overshoot-slider', 'overshoot-val', 0, 2.0, 0.1, v => features.aimbot.overshoot = v);
@@ -1758,7 +1772,9 @@ initSlider('min-dist-slider', 'min-dist-val', 0.1, 3.0, 0.1, v => features.trigg
 initSlider('max-dist-slider', 'max-dist-val', 0.5, 5.0, 0.1, v => features.triggerbot.maxDist = v);
 initSlider('fire-delay-slider', 'fire-delay-val', 30, 150, 5, v => features.triggerbot.fireDelay = v);
 initSlider('spam-speed-slider', 'spam-speed-val', 50, 500, 10, v => features.clanspam.speed = v);
+
 setupBindListeners();
+
 // ✅ ПЕРЕКЛЮЧАТЕЛИ ФИЧ (БЕЗ FULLBRIGHT)
 document.querySelectorAll('.p-switch[data-feature]').forEach(switchEl => {
 const featureKey = switchEl.dataset.feature;
@@ -1783,6 +1799,7 @@ if (featureKey === 'crosshair') document.body.classList.toggle('crosshair-cursor
 showNotification(`${features[featureKey].name} ${newState ? 'enabled' : 'disabled'}`, newState ? 'enabled' : 'disabled');
 });
 });
+
 document.querySelectorAll('.p-switch[data-setting]').forEach(switchEl => {
 const [feature, setting] = switchEl.dataset.setting.split('.');
 if (features[feature][setting]) switchEl.classList.add('active');
@@ -1793,6 +1810,7 @@ features[feature][setting] = newState;
 showNotification(`${setting.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} ${newState ? 'enabled' : 'disabled'}`, 'info');
 });
 });
+
 document.querySelectorAll('.p-switch[data-building]').forEach(switchEl => {
 const type = switchEl.dataset.building;
 const index = parseInt(switchEl.dataset.index);
@@ -1811,6 +1829,7 @@ targetArray[index].enabled = newState;
 showNotification(`${targetArray[index].name} ${newState ? 'enabled' : 'disabled'}`, 'info');
 });
 });
+
 document.addEventListener('keydown', (e) => {
 if (e.code === 'Insert') {
 e.preventDefault();
@@ -1841,6 +1860,7 @@ showNotification(`${config.name} ${config.enabled ? 'enabled' : 'disabled'}`, co
 }
 });
 });
+
 const updateMenuUsername = () => {
 const usernameEl = document.getElementById('menu-username');
 const input = document.getElementById('input_username');
@@ -1854,6 +1874,7 @@ updateMenuUsername();
 usernameInput.addEventListener('input', updateMenuUsername);
 }
 window.addEventListener('load', updateMenuUsername);
+
 setTimeout(() => {
 document.querySelectorAll('.p-switch[data-feature]').forEach(switchEl => {
 const key = switchEl.dataset.feature;
@@ -1901,8 +1922,15 @@ initMenu();
 applyLobbyInstant();
 initMenu();
 }
+
+// ────────────────────────────────────────────────
+//  ULTIMATE CONSOLE-STYLE FULLBRIGHT
+// ────────────────────────────────────────────────
+
 const hack = () => {
+    // Пытаемся найти реальное окно игры, где лежит PIXI
     const targetWindow = window.__PIXI_APP__ ? window : (window.unsafeWindow || window.top);
+
     if (!features.fullbright.enabled) {
         if (targetWindow.__PIXI_APP__ && targetWindow.__PIXI_APP__.stage) {
             const nl = targetWindow.__PIXI_APP__.stage.children.find(c => c.name === "Night Lights");
@@ -1910,10 +1938,17 @@ const hack = () => {
         }
         return;
     }
+
     if (!targetWindow.__PIXI_APP__ || !targetWindow.__PIXI_APP__.stage) return;
+
+    // ТОТ САМЫЙ КОД, КОТОРЫЙ ТЫ КИДАЛ (один в один)
     const nightLights = targetWindow.__PIXI_APP__.stage.children.find(c => c.name === "Night Lights");
+
     if (nightLights) {
+        // 1. Прячем сам слой
         nightLights.visible = false;
+
+        // 2. Ищем шейдер
         if (nightLights.filters) {
             nightLights.filters.forEach(f => {
                 if (f.uniforms && f.uniforms.maxOpacity !== undefined) {
@@ -1923,54 +1958,122 @@ const hack = () => {
         }
     }
 };
+
+// Запускаем интервал точно так же, как в твоем примере
 setInterval(hack, 1000);
 
+
 //  ✅ FINAL WORKING MAIN LOOP
+
+// ────────────────────────────────────────────────
+
 function mainLoop() {
+
     // 1. Гарантированный поиск канваса
+
     if (!gameCanvas) {
+
         gameCanvas = document.querySelector('canvas');
+
     }
+
+
+
     // 2. Получение данных (безопасное)
+
     const enemies = (typeof findAllEnemies === 'function') ? findAllEnemies() : [];
+
     const nearest = (typeof findNearestEnemy === 'function') ? findNearestEnemy() : null;
+
+
+
     // 3. ОТРИСОВКА СТРЕЛОЧЕК
+
     // Проверяем существование всего пути до enabled
+
     if (features && features.arrows && features.arrows.enabled && myPos && gameCanvas) {
+
         if (typeof setupArrowCanvas === 'function') setupArrowCanvas();
+
+
+
         // Если инициализация прошла успешно
+
         if (arrowCtx) {
+
             const rect = gameCanvas.getBoundingClientRect();
+
             const centerX = rect.left + rect.width / 2;
+
             const centerY = rect.top + rect.height / 2;
+
+
+
             // Фильтрация союзников
+
             const filtered = (features.arrows.ignoreTeam && enemies.length > 0)
+
                 ? enemies.filter(e => !e.teammate)
+
                 : enemies;
+
+
+
             if (typeof drawAllArrows === 'function') {
+
                 drawAllArrows(centerX, centerY, filtered);
+
             }
+
         }
+
     } else {
+
         // Безопасная очистка, если стрелки выключены
+
         if (typeof arrowCtx !== 'undefined' && arrowCtx && arrowCanvas) {
+
             arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
+
         }
+
     }
+
+
+
     // 4. АИМБОТ
+
     if (myPos && nearest) {
+
         if (features && features.aimbot && features.aimbot.enabled) {
+
             if (typeof performAim === 'function') {
+
                 performAim(nearest);
+
             }
+
         }
+
         if (features && features.triggerbot && features.triggerbot.enabled) {
+
             if (typeof checkTrigger === 'function') {
+
                 checkTrigger(nearest);
+
             }
+
         }
+
     }
+
+
+
     requestAnimationFrame(mainLoop);
+
 }
+
+// Запуск основного цикла
 requestAnimationFrame(mainLoop);
+console.log('%c[Interium] Fix Applied: Aim & Arrows Synced.', 'color: #00ff00; font-weight: bold');
 })();
