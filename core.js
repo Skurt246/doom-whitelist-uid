@@ -243,142 +243,230 @@ return false;
 };
 
 // ────────────────────────────────────────────────
-//  ✅ ЛОББИ (ФИКС ДВОЕНИЯ ЛОГОТИПА)
+// ✅ INTERIUM ULTRA GLASS 2.0: FULL LOBBY CODE (FIXED LAYOUT)
 // ────────────────────────────────────────────────
 let logoCreated = false;
+
 const applyLobbyInstant = () => {
-const observer = new MutationObserver((mutations) => {
-for (const mut of mutations) {
-if (mut.addedNodes.length) {
-applyBackground();
-createLogo();
-styleUsernameInput();
-stylePlayButton();
-replaceAdBoxWithChangelog();
-fixLayout();
-observer.disconnect();
-break;
-}
-}
-});
-observer.observe(document.body, { childList: true, subtree: true });
-setTimeout(() => {
-applyBackground();
-createLogo();
-styleUsernameInput();
-stylePlayButton();
-replaceAdBoxWithChangelog();
-fixLayout();
-}, 100);
+    const observer = new MutationObserver((mutations) => {
+        for (const mut of mutations) {
+            if (mut.addedNodes.length) {
+                applyBackground();
+                createLogo();
+                styleUsernameInput();
+                stylePlayButton();
+                replaceAdBoxWithChangelog();
+                fixLayout();
+                observer.disconnect();
+                break;
+            }
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => {
+        applyBackground();
+        createLogo();
+        styleUsernameInput();
+        stylePlayButton();
+        replaceAdBoxWithChangelog();
+        fixLayout();
+    }, 100);
 };
 
 const BACKGROUND_GIF = 'https://i.pinimg.com/originals/d2/96/e0/d296e07c0e5f9c76483055aa12dc5816.gif';
+
 const applyBackground = () => {
-const bg = document.getElementById('titleBackground');
-if (bg) {
-bg.style.backgroundImage = `url('${BACKGROUND_GIF}')`;
-bg.style.backgroundSize = 'cover';
-bg.style.backgroundPosition = 'center';
-bg.style.backgroundRepeat = 'no-repeat';
-bg.style.filter = 'brightness(1.1) contrast(1.1)';
-['moon', 'tower', 'lava', '.fog', '.stones'].forEach(sel => {
-if (sel.startsWith('.')) document.querySelectorAll(sel).forEach(el => el.style.display = 'none');
-else {
-const el = document.getElementById(sel);
-if (el) el.style.display = 'none';
-}
-});
-} else setTimeout(applyBackground, 50);
+    const bg = document.getElementById('titleBackground');
+    if (bg) {
+        bg.style.backgroundImage = `url('${BACKGROUND_GIF}')`;
+        bg.style.backgroundSize = 'cover';
+        bg.style.backgroundPosition = 'center';
+        bg.style.backgroundRepeat = 'no-repeat';
+        bg.style.filter = 'brightness(0.9) contrast(1.1)';
+        ['moon', 'tower', 'lava', '.fog', '.stones'].forEach(sel => {
+            if (sel.startsWith('.')) document.querySelectorAll(sel).forEach(el => el.style.display = 'none');
+            else {
+                const el = document.getElementById(sel);
+                if (el) el.style.display = 'none';
+            }
+        });
+    } else setTimeout(applyBackground, 50);
 };
 
 const createLogo = () => {
-// ✅ ФИКС: НЕ СОЗДАВАТЬ ЛОГО ПОВТОРНО
-if (logoCreated) return;
-const title = document.getElementById('title');
-if (title) title.style.display = 'none';
-const logo = document.createElement('div');
-logo.id = 'interium-logo';
-logo.innerHTML = `<span class="letter">I</span><span class="letter">n</span><span class="letter">t</span><span class="letter">e</span><span class="letter">r</span><span class="letter">i</span><span class="letter">u</span><span class="letter">m</span><span class="letter">.</span><span class="letter">c</span><span class="letter">c</span>`;
-logo.style.cssText = `font-family: 'Orbitron', sans-serif; font-size: 80px; font-weight: 900; color: #00ccff; text-align: center; margin-bottom: 20px; letter-spacing: 2px; text-shadow: 0 0 20px #00ccff, 0 0 40px #0066ff;`;
-const anim = document.createElement('style');
-anim.textContent = `.letter { opacity:0; display:inline-block; animation:fadeInLetter 0.5s forwards; } .letter:nth-child(1){animation-delay:0.1s} .letter:nth-child(2){animation-delay:0.2s} .letter:nth-child(3){animation-delay:0.3s} .letter:nth-child(4){animation-delay:0.4s} .letter:nth-child(5){animation-delay:0.5s} .letter:nth-child(6){animation-delay:0.6s} .letter:nth-child(7){animation-delay:0.7s} .letter:nth-child(8){animation-delay:0.8s} .letter:nth-child(9){animation-delay:0.9s} .letter:nth-child(10){animation-delay:1.0s} .letter:nth-child(11){animation-delay:1.1s} @keyframes fadeInLetter { from {opacity:0; transform:scale(0.8)} to {opacity:1; transform:scale(1)} }`;
-document.head.appendChild(anim);
-const container = document.getElementById('main-page');
-if (container) container.prepend(logo);
-logoCreated = true;
+    if (logoCreated) return;
+    const title = document.getElementById('title');
+    if (title) title.style.display = 'none';
+    const logo = document.createElement('div');
+    logo.id = 'interium-logo';
+    logo.innerHTML = `<span class="letter">I</span><span class="letter">n</span><span class="letter">t</span><span class="letter">e</span><span class="letter">r</span><span class="letter">i</span><span class="letter">u</span><span class="letter">m</span><span class="letter">.</span><span class="letter">c</span><span class="letter">c</span>`;
+    logo.style.cssText = `font-family: 'Orbitron', sans-serif !important; font-size: 80px !important; font-weight: 900 !important; color: #00ccff !important; text-align: center !important; margin-bottom: 25px !important; letter-spacing: 2px !important; text-shadow: 0 0 20px rgba(0, 204, 255, 0.5) !important;`;
+
+    if (!document.getElementById('interium-anim')) {
+        const anim = document.createElement('style');
+        anim.id = 'interium-anim';
+        anim.textContent = `
+            .letter { opacity:0; display:inline-block; animation:fadeInLetter 0.5s forwards; }
+            ${Array.from({length: 11}, (_, i) => `.letter:nth-child(${i+1}){animation-delay:${(i+1)*0.08}s}`).join(' ')}
+            @keyframes fadeInLetter { from {opacity:0; transform:scale(0.8)} to {opacity:1; transform:scale(1)} }
+            #input_username::placeholder { color: rgba(255, 255, 255, 0.3) !important; }
+        `;
+        document.head.appendChild(anim);
+    }
+    const container = document.getElementById('main-page');
+    if (container) container.prepend(logo);
+    logoCreated = true;
 };
 
 const styleUsernameInput = () => {
-const input = document.getElementById('input_username');
-if (input) {
-input.style.background = 'rgba(0,0,0,0.5)';
-input.style.color = '#00ccff';
-input.style.border = '1px solid #00ccff';
-input.style.borderRadius = '6px';
-input.style.boxShadow = '0 0 8px #00ccff';
-input.style.textAlign = 'center';
-}
+    const input = document.getElementById('input_username');
+    if (input) {
+        input.style.cssText = `
+            background: rgba(255, 255, 255, 0.05) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 12px !important;
+            color: #fff !important;
+            padding: 0 15px !important;
+            font-family: 'Orbitron', sans-serif !important;
+            font-size: 14px !important;
+            transition: all 0.3s ease !important;
+            outline: none !important;
+            width: 200px !important;
+            height: 42px !important;
+            text-align: center !important;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
+            margin: 0 !important;
+        `;
+        input.onfocus = () => {
+            input.style.border = '1px solid rgba(0, 204, 255, 0.4)';
+            input.style.background = 'rgba(255, 255, 255, 0.1)';
+        };
+        input.onblur = () => {
+            input.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+            input.style.background = 'rgba(255, 255, 255, 0.05)';
+        };
+    }
 };
 
 const stylePlayButton = () => {
-const btn = document.getElementById('connect_button');
-if (btn) {
-btn.style.background = 'linear-gradient(90deg, #00ccff, #0066ff)';
-btn.style.border = 'none';
-btn.style.color = '#fff';
-btn.style.fontWeight = 'bold';
-btn.style.borderRadius = '8px';
-btn.style.boxShadow = '0 0 12px #00ccff';
-btn.style.transition = 'box-shadow .3s';
-btn.onmouseenter = () => btn.style.boxShadow = '0 0 20px #00ccff';
-btn.onmouseleave = () => btn.style.boxShadow = '0 0 12px #00ccff';
-}
+    const btn = document.getElementById('connect_button');
+    if (btn) {
+        btn.innerHTML = '<span style="font-size: 10px; color: #fff; margin-right: 5px;">▶</span> PLAY';
+        btn.style.cssText = `
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            padding: 0 20px !important;
+            height: 42px !important;
+            border-radius: 12px !important;
+            cursor: pointer !important;
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-family: 'Orbitron', sans-serif !important;
+            font-weight: 700 !important;
+            font-size: 12px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1) !important;
+            margin: 0 !important;
+            outline: none !important;
+        `;
+        btn.onmouseenter = () => {
+            btn.style.background = 'rgba(255, 255, 255, 0.15)';
+            btn.style.transform = 'translateY(-2px)';
+            btn.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.2)';
+        };
+        btn.onmouseleave = () => {
+            btn.style.background = 'rgba(255, 255, 255, 0.08)';
+            btn.style.transform = 'translateY(0)';
+            btn.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.1)';
+        };
+        btn.onmousedown = () => {
+            btn.style.transform = 'translateY(0) scale(0.96)';
+        };
+    }
 };
 
 const replaceAdBoxWithChangelog = () => {
-const ad = document.querySelector('.darkbox.ad');
-if (!ad) return;
-ad.remove();
-const cl = document.createElement('div');
-cl.style.cssText = `background: linear-gradient(135deg, rgba(15,25,45,0.92), rgba(20,35,60,0.92)); border: 2px solid #24e9ff88; border-radius: 16px; padding: 20px 24px; margin: 25px auto 15px; max-width: 640px; box-shadow: 0 0 30px #24e9ff88, inset 0 0 20px rgba(36,233,255,0.15); color: #eafdff; font-family: 'Orbitron',sans-serif;`;
-cl.innerHTML = `
-<div style="font-size:18px;font-weight:800;margin-bottom:15px;">INTERIUM v13.0.2</div>
-<div>🎯 Fixed AimBot - Accurate targeting with corrected coordinates</div>
-<div>📏 Fixed Distance - Arrows show correct distance (5m not 50km)</div>
-<div>⚡ Instant Lobby - Custom background/logo applied immediately</div>
-<div>💾 Persistent Settings - Binds/features saved between sessions</div>
-<div>⌨️ Advanced Binds - Support for Shift/Ctrl/Alt/F-keys/Numpad</div>
-<div>❌ Smart Menu - Close with Esc or click outside</div>
-<div>✅ Notifications Fixed - All toggle messages visible and functional</div>
-<div>📊 FPS Counter - Moved to bottom-left corner</div>
-<div>🔨 AutoCraft - NEW! Auto-craft shields & ammo</div>
-`;
-document.body.appendChild(cl);
+    const ad = document.querySelector('.darkbox.ad');
+    if (!ad) return;
+    ad.remove();
+    const cl = document.createElement('div');
+    cl.style.cssText = `background: rgba(10, 12, 18, 0.8); backdrop-filter: blur(16px); border: 1px solid rgba(36, 233, 255, 0.2); border-radius: 20px; padding: 22px 28px; margin: 25px auto; max-width: 600px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); color: #e0faff; font-family: 'Segoe UI', sans-serif;`;
+    cl.innerHTML = `
+        <div style="font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900; margin-bottom: 15px; color: #fff; display: flex; align-items: center; gap: 10px;">
+            <span style="width: 4px; height: 20px; background: #24e9ff; border-radius: 2px;"></span>
+            INTERIUM SYSTEM
+            <span style="color: rgba(255,255,255,0.4); font-size: 13px; font-weight: 400;">v13.0.2</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 9px; font-size: 13.5px;">
+            <div style="display: flex; gap: 10px;"><b style="color: #24e9ff;">[FIX]</b> <span>Обновлена структура <b>Prediction</b> для более плавного наведения AimBot.</span></div>
+            <div style="display: flex; gap: 10px;"><b style="color: #24e9ff;">[FIX]</b> <span>Исправлено позиционирование элементов в главном меню (Glass 2.0).</span></div>
+            <div style="display: flex; gap: 10px;"><b style="color: #a855f7;">[UI]</b> <span>Улучшена читаемость текста в лобби и обновлены иконки соцсетей.</span></div>
+            <div style="display: flex; gap: 10px;"><b style="color: #10b981;">[SYS]</b> <span>Оптимизация обработки входящих пакетов для снижения "микро-фризов".</span></div>
+            <div style="display: flex; gap: 10px;"><b style="color: #f1c40f;">[CFG]</b> <span>Мелкие исправления в системе сохранения биндов и настроек.</span></div>
+            <div style="display: flex; gap: 10px;"><b style="color: #3b82f6;">[MISC]</b> <span>Улучшена общая стабильность отрисовки 2D-визуалов.</span></div>
+        </div>
+        <div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 10px; color: rgba(255,255,255,0.3); text-align: right; text-transform: uppercase; letter-spacing: 1px;">
+            Status: <span style="color: #10b981;">All systems nominal</span>
+        </div>`;
+    document.body.appendChild(cl);
 };
 
 const fixLayout = () => {
-const c = document.getElementById('main-page');
-if (!c) return;
-c.style.display = 'flex';
-c.style.flexDirection = 'column';
-c.style.alignItems = 'center';
-c.style.justifyContent = 'center';
-c.style.paddingTop = '40px';
-const inp = document.getElementById('input_username');
-const btn = document.getElementById('connect_button');
-if (inp && btn) {
-const row = document.createElement('div');
-row.style.display = 'flex';
-row.style.flexDirection = 'row';
-row.style.alignItems = 'center';
-row.style.gap = '12px';
-row.style.marginTop = '10px';
-inp.parentNode.insertBefore(row, inp);
-row.appendChild(inp);
-row.appendChild(btn);
-}
+    const mainPage = document.getElementById('main-page');
+    const input = document.getElementById('input_username');
+    const btn = document.getElementById('connect_button');
+    const socialDiv = document.getElementById('social_icon_div');
+    const captchaSolved = document.getElementById('captcha_solved');
+
+    if (mainPage) {
+        mainPage.style.cssText = "display: flex !important; flex-direction: column !important; align-items: center !important; padding-top: 40px !important;";
+
+        // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Группируем инпут и кнопку в ряд
+        let rowWrapper = document.getElementById('input-row-wrapper');
+        if (!rowWrapper && input && btn) {
+            rowWrapper = document.createElement('div');
+            rowWrapper.id = 'input-row-wrapper';
+            rowWrapper.style.cssText = "display: flex !important; flex-direction: row !important; align-items: center !important; gap: 10px !important; margin-top: 15px !important; margin-bottom: 10px !important;";
+
+            input.parentNode.insertBefore(rowWrapper, input);
+            rowWrapper.appendChild(input);
+            rowWrapper.appendChild(btn);
+        }
+    }
+
+    if (socialDiv) socialDiv.style.cssText = "background: transparent !important; border: none !important; box-shadow: none !important;";
+
+    if (captchaSolved) {
+        const row = captchaSolved.querySelector('div');
+        if (row) {
+            row.style.cssText = `
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 12px !important;
+                background: rgba(10, 12, 18, 0.4) !important;
+                padding: 12px 20px !important;
+                border-radius: 50px !important;
+                border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                backdrop-filter: blur(10px) !important;
+                margin-top: 15px !important;
+            `;
+            Array.from(row.children).forEach(child => { if (child.tagName === 'DIV') child.style.display = 'contents'; });
+        }
+    }
 };
 
+// Запуск скрипта
+applyLobbyInstant();
 // ────────────────────────────────────────────────
 //  ✅ СЕЛЕКТОРЫ СТРОИТЕЛЬСТВА
 // ────────────────────────────────────────────────
