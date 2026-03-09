@@ -783,30 +783,90 @@ requestAnimationFrame(updateFPS);
 updateFPS();
 
 // ────────────────────────────────────────────────
-//  ✅ NOTIFICATIONS
+//  ✅ MODERN COMPACT NOTIFICATIONS (GLASS 2.0)
 // ────────────────────────────────────────────────
 const notifContainer = document.createElement('div');
 notifContainer.id = 'notification-container';
-notifContainer.style.cssText = `position: fixed; bottom: 20px; left: 20px; z-index: 999999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;`;
+// Сместил чуть выше и сделал отступ поменьше
+notifContainer.style.cssText = `position: fixed; bottom: 30px; left: 20px; z-index: 1000000; display: flex; flex-direction: column; gap: 8px; pointer-events: none;`;
 document.documentElement.appendChild(notifContainer);
+
 const notifStyle = document.createElement('style');
-notifStyle.textContent = `.notification { transition: all .4s ease !important; } .notification.show { opacity: 1 !important; transform: translateX(0) scale(1) !important; } @keyframes fpsPulse { 0%, 100% { box-shadow: 0 0 14px rgba(36,233,255,.5); } 50% { box-shadow: 0 0 22px rgba(36,233,255,.8); } }`;
+notifStyle.textContent = `
+    .interium-notif { 
+        backdrop-filter: blur(10px); 
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(36, 233, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; 
+    }
+    .notif-icon {
+        display: flex; align-items: center; justify-content: center;
+        width: 18px; height: 18px; border-radius: 4px; font-size: 9px; 
+        font-weight: 900; text-transform: uppercase;
+    }
+`;
 document.head.appendChild(notifStyle);
+
 function showNotification(text, type = 'info') {
-const n = document.createElement('div');
-n.className = `notification ${type} interium-notification`;
-n.style.cssText = `background: linear-gradient(135deg, rgba(15,25,45,.97), rgba(27,38,59,.97)); color: #eafdff; padding: 12px 18px; border-radius: 12px; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600; box-shadow: 0 0 24px rgba(36,233,255,.5); border-left: 4px solid #24e9ff; opacity: 0; transform: translateX(-120px) scale(.92); transition: all .4s ease; display: flex; align-items: center; gap: 12px; min-width: 260px; pointer-events: auto;`;
-n.innerHTML = `<div style="width:24px;height:24px;background:#24e9ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0f1a2b;font-weight:bold;box-shadow:0 0 12px #24e9ff99;">${type==='enabled'?'ON':type==='disabled'?'OFF':'i'}</div><div>${text}</div>`;
-notifContainer.appendChild(n);
-setTimeout(() => {
-n.style.opacity = '1';
-n.style.transform = 'translateX(0) scale(1)';
-}, 10);
-setTimeout(() => {
-n.style.opacity = '0';
-n.style.transform = 'translateX(-120px) scale(.92)';
-setTimeout(() => n.remove(), 450);
-}, 1800);
+    const n = document.createElement('div');
+    n.className = 'interium-notif';
+    
+    // Цветовые схемы для типов
+    const colors = {
+        enabled: { bg: 'rgba(16, 185, 129, 0.15)', accent: '#10b981', label: 'ON' },
+        disabled: { bg: 'rgba(239, 68, 68, 0.15)', accent: '#ef4444', label: 'OFF' },
+        info: { bg: 'rgba(36, 233, 255, 0.1)', accent: '#24e9ff', label: 'i' }
+    };
+    const config = colors[type] || colors.info;
+
+    n.style.cssText = `
+        background: rgba(10, 15, 25, 0.85);
+        color: #fff;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 180px;
+        max-width: 280px;
+        opacity: 0;
+        transform: translateX(-30px) scale(0.9);
+        pointer-events: auto;
+        border-left: 3px solid ${config.accent};
+    `;
+
+    n.innerHTML = `
+        <div class="notif-icon" style="background: ${config.bg}; color: ${config.accent}; border: 1px solid ${config.accent}44;">
+            ${config.label}
+        </div>
+        <div style="letter-spacing: 0.5px; font-weight: 500;">${text}</div>
+    `;
+
+    notifContainer.appendChild(n);
+
+    // Появление
+    setTimeout(() => {
+        n.style.opacity = '1';
+        n.style.transform = 'translateX(0) scale(1)';
+    }, 50);
+
+    // Удаление через 4 секунды (сделал дольше, как ты просил)
+    const hideTimeout = setTimeout(() => {
+        n.style.opacity = '0';
+        n.style.transform = 'translateX(-20px) scale(0.95)';
+        n.style.filter = 'blur(4px)';
+        setTimeout(() => n.remove(), 500);
+    }, 4000); 
+
+    // Закрытие при клике
+    n.onclick = () => {
+        clearTimeout(hideTimeout);
+        n.style.opacity = '0';
+        setTimeout(() => n.remove(), 300);
+    };
 }
 
 // ────────────────────────────────────────────────
