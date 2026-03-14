@@ -1359,7 +1359,7 @@ System Info
 Build Version
 </div>
 <div class="info-row"><span class="info-label">Version</span><span class="info-value">v13.0.2</span></div>
-<div class="info-row"><span class="info-label">Last Update</span><span class="info-value">Feb 1, 2026</span></div>
+<div class="info-row"><span class="info-label">Last Update</span><span class="info-value">March 14, 2026.</span></div>
 <div class="info-row"><span class="info-label">Status</span><span class="info-value" style="color:#00ff88;background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);">● Active</span></div>
 </div>
 <div class="info-card">
