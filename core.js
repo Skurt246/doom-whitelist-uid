@@ -1051,8 +1051,8 @@ const menuHtml = `
 <div class="premium-panel interium-menu-container">
 <div class="panel-glow"></div>
 <div class="p-header">
-<div class="p-logo">INTERIUM.CC <span>v13.0.2</span></div>
-<div style="font-size:11px;opacity:0.6;">Absolute Phantom</div>
+<div class="p-logo">INTERIUM.CC <span>v14.0</span></div>
+<div style="font-size:11px;opacity:0.6;">Phantom Release</div>
 </div>
 <div class="p-main">
 <div class="p-sidebar">
@@ -1418,8 +1418,8 @@ System Info
 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
 Build Version
 </div>
-<div class="info-row"><span class="info-label">Version</span><span class="info-value">v13.0.2</span></div>
-<div class="info-row"><span class="info-label">Last Update</span><span class="info-value">Feb 1, 2026</span></div>
+<div class="info-row"><span class="info-label">Version</span><span class="info-value">v14.0</span></div>
+<div class="info-row"><span class="info-label">Last Update</span><span class="info-value">Mar 15, 2026</span></div>
 <div class="info-row"><span class="info-label">Status</span><span class="info-value" style="color:#00ff88;background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);">● Active</span></div>
 </div>
 <div class="info-card">
