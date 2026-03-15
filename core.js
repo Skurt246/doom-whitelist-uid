@@ -1,4 +1,4 @@
-    // ────────────────────────────────────────────────
+     // ────────────────────────────────────────────────
     //  ✅ MSGPACK ДЕКОДЕР
     // ────────────────────────────────────────────────
     const msgpackDecode = (() => {
@@ -572,47 +572,48 @@ autoCraft: { enabled: false, bind: null, name: "AutoCraft " }
 // ────────────────────────────────────────────────
 const OriginalWS = window.WebSocket;
 window.WebSocket = function(...args) {
-const ws = new OriginalWS(...args);
-ws.addEventListener('message', e => {
-try {
-const decoded = msgpackDecode(e.data);
-if (decoded?.header === 'update') {
-const ud = decoded.user_data;
-if (ud?.user_obj_id) myObjId = ud.user_obj_id;
-if ("clan_name" in ud) myClan = ud.clan_name;
-const ups = decoded.entity_updates;
-if (ups) {
-for (const [idStr, obj] of Object.entries(ups)) {
-const pos = obj.position;
-const user = obj.user;
-const vel = obj.velocity;
-if (Array.isArray(pos) && pos.length === 2) {
-if (idStr === String(myObjId) && user?.username) {
-myPos = [...pos];
-myVel = Array.isArray(vel) ? vel : [0,0];
-if (user.clanName) myClan = user.clanName;
-continue;
-}
-if (user?.username) {
-players.set(idStr, {
-nick: user.username,
-pos: [...pos],
-vel: Array.isArray(vel) ? vel : [0,0],
-time: Date.now(),
-user
-});
-}
-}
-}
-}
-}
-} catch (err) { console.error("WS decode error:", err); }
-});
-return ws;
+    const ws = new OriginalWS(...args);
+    window._activeWS = ws;
+    ws.addEventListener('message', e => {
+        if (!(e.data instanceof ArrayBuffer)) return;
+        try {
+            const decoded = msgpackDecode(e.data);
+            if (decoded?.header === 'update') {
+                const ud = decoded.user_data;
+                if (ud?.user_obj_id) myObjId = ud.user_obj_id;
+                if ("clan_name" in ud) myClan = ud.clan_name;
+                const ups = decoded.entity_updates;
+                if (ups) {
+                    for (const [idStr, obj] of Object.entries(ups)) {
+                        const pos = obj.position;
+                        const user = obj.user;
+                        const vel = obj.velocity;
+                        if (Array.isArray(pos) && pos.length === 2) {
+                            if (idStr === String(myObjId) && user?.username) {
+                                myPos = [...pos];
+                                myVel = Array.isArray(vel) ? vel : [0,0];
+                                if (user.clanName) myClan = user.clanName;
+                                continue;
+                            }
+                            if (user?.username) {
+                                players.set(idStr, {
+                                    nick: user.username,
+                                    pos: [...pos],
+                                    vel: Array.isArray(vel) ? vel : [0,0],
+                                    time: Date.now(),
+                                    user
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (err) { console.error("WS decode error:", err); }
+    });
+    return ws;
 };
 Object.assign(window.WebSocket, OriginalWS);
 window.WebSocket.prototype = OriginalWS.prototype;
-
 // ────────────────────────────────────────────────
 //  ✅ FAST RESPAWN
 // ────────────────────────────────────────────────
@@ -1478,9 +1479,6 @@ if (panel && panel.classList.contains('show')) {
 panel.classList.remove('show');
 setTimeout(() => {
 panel.style.display = 'none';
-panel.style.left = '50%';
-panel.style.top = '50%';
-panel.style.transform = 'translate(-50%, -50%)';
 }, 300);
 document.removeEventListener('click', handleOutsideClick);
 }
@@ -1797,9 +1795,15 @@ e.preventDefault();
 if (panel.classList.contains('show')) {
 closeMenu();
 } else {
-panel.style.display = 'flex';
-setTimeout(() => panel.classList.add('show'), 10);
-document.addEventListener('click', handleOutsideClick);
+    if (!panel.dataset.positioned) {
+        panel.style.left = '50%';
+        panel.style.top = '50%';
+        panel.style.transform = 'translate(-50%, -50%)';
+        panel.dataset.positioned = 'true';
+    }
+    panel.style.display = 'flex';
+    setTimeout(() => panel.classList.add('show'), 10);
+    document.addEventListener('click', handleOutsideClick);
 }
 }
 Object.entries(features).forEach(([key, config]) => {
@@ -1924,66 +1928,6 @@ const hack = () => {
 setInterval(hack, 1000);
 
 // ────────────────────────────────────────────────
-//  ✅ FINAL WORKING MAIN LOOP
-// ────────────────────────────────────────────────
-function mainLoop() {
-    // 1. Гарантированный поиск канваса
-    if (!gameCanvas) {
-        gameCanvas = document.querySelector('canvas');
-    }
-
-    // 2. Получение данных (безопасное)
-    const enemies = (typeof findAllEnemies === 'function') ? findAllEnemies() : [];
-    const nearest = (typeof findNearestEnemy === 'function') ? findNearestEnemy() : null;
-
-    // 3. ОТРИСОВКА СТРЕЛОЧЕК
-    // Проверяем существование всего пути до enabled
-    if (features && features.arrows && features.arrows.enabled && myPos && gameCanvas) {
-        if (typeof setupArrowCanvas === 'function') setupArrowCanvas();
-
-        // Если инициализация прошла успешно
-        if (arrowCtx) {
-            const rect = gameCanvas.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-
-            // Фильтрация союзников
-            const filtered = (features.arrows.ignoreTeam && enemies.length > 0)
-                ? enemies.filter(e => !e.teammate)
-                : enemies;
-
-            if (typeof drawAllArrows === 'function') {
-                drawAllArrows(centerX, centerY, filtered);
-            }
-        }
-    } else {
-        // Безопасная очистка, если стрелки выключены
-        if (typeof arrowCtx !== 'undefined' && arrowCtx && arrowCanvas) {
-            arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
-        }
-    }
-
-    // 4. АИМБОТ
-    if (myPos && nearest) {
-        if (features && features.aimbot && features.aimbot.enabled) {
-            if (typeof performAim === 'function') {
-                performAim(nearest);
-            }
-        }
-        if (features && features.triggerbot && features.triggerbot.enabled) {
-            if (typeof checkTrigger === 'function') {
-                checkTrigger(nearest);
-            }
-        }
-    }
-
-    requestAnimationFrame(mainLoop);
-}
-
-// Запуск основного цикла
-requestAnimationFrame(mainLoop);
-console.log('%c[Interium] Fix Applied: Aim & Arrows Synced.', 'color: #00ff00; font-weight: bold');
-// ────────────────────────────────────────────────
 //  ✅ INTERIUM ONLINE / HOLO
 // ────────────────────────────────────────────────
 
@@ -2049,6 +1993,7 @@ document.head.appendChild(holoStyle);
         const db = firebase.database();
         let fbNick = "Joining...";
         let interiumUsers = [];
+        let onlineSessionsRef = null;
 
         // ── ОВЕРЛЕЙ ──
         const overlayContainer = document.createElement('div');
@@ -2056,11 +2001,39 @@ document.head.appendChild(holoStyle);
         overlayContainer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999999;overflow:hidden;';
         document.body.appendChild(overlayContainer);
 
-        db.ref('online_sessions').on('value', snap => {
-            const data = snap.val();
-            interiumUsers = data ? Object.keys(data) : [];
-            processAllNicks();
-        });
+        // ── ПОДПИСКА НА ONLINE SESSIONS С ПЕРЕПОДПИСКОЙ ──
+        function subscribeToOnlineSessions() {
+            if (onlineSessionsRef) {
+                onlineSessionsRef.off();
+            }
+            onlineSessionsRef = db.ref('online_sessions');
+            onlineSessionsRef.on('value', snap => {
+                const data = snap.val();
+                interiumUsers = data ? Object.keys(data) : [];
+                processAllNicks();
+            }, err => {
+                // При ошибке переподписываемся через 3 сек
+                console.log('[Interium] Firebase ошибка подписки, переподключаемся...');
+                setTimeout(subscribeToOnlineSessions, 3000);
+            });
+        }
+        subscribeToOnlineSessions();
+
+        // Переподписка каждые 2 минуты на всякий случай
+        setInterval(subscribeToOnlineSessions, 120000);
+
+        // Принудительное чтение каждые 10 сек — страховка
+        setInterval(() => {
+            db.ref('online_sessions').once('value', snap => {
+                const data = snap.val();
+                const fresh = data ? Object.keys(data) : [];
+                // Если список изменился — обновляем
+                if (JSON.stringify(fresh.sort()) !== JSON.stringify(interiumUsers.sort())) {
+                    interiumUsers = fresh;
+                    processAllNicks();
+                }
+            });
+        }, 10000);
 
         // ── ХУК CANVAS ──
         const _fillText = CanvasRenderingContext2D.prototype.fillText;
@@ -2078,7 +2051,6 @@ document.head.appendChild(holoStyle);
             return _fillText.call(this, t, x, y, maxWidth);
         };
 
-        // Карта наблюдателей чтобы не вешать дубли
         const watchedElements = new WeakMap();
 
         function freezeClass(el) {
@@ -2103,27 +2075,24 @@ document.head.appendChild(holoStyle);
         function paintNick(el, nick) {
             if (interiumUsers.includes(nick) || nick === fbNick) {
                 if (!el.classList.contains('holo-text')) el.classList.add('holo-text');
-                freezeClass(el); // вешаем защиту
+                freezeClass(el);
             } else {
-                unfreezeClass(el); // снимаем защиту
+                unfreezeClass(el);
                 el.classList.remove('holo-text');
             }
         }
 
         function processAllNicks() {
-            // 1. TAB
             document.querySelectorAll('.leaderboard_row .left_text').forEach(row => {
                 const nick = row.innerText.replace(/^\d+\.\s*/, '').trim();
                 paintNick(row, nick);
             });
 
-            // 2. ЧАТ
             document.querySelectorAll('.message_sender').forEach(sender => {
                 const nick = sender.innerText.replace(':', '').trim();
                 paintNick(sender, nick);
             });
 
-            // 3. КЛАН — Leader:
             document.querySelectorAll('.clan_container p').forEach(p => {
                 const text = p.innerText || '';
                 const leaderMatch = text.match(/^Leader:\s*(.+)$/);
@@ -2137,7 +2106,6 @@ document.head.appendChild(holoStyle);
                     return;
                 }
 
-                // Снимаем защиту перед изменением innerHTML
                 unfreezeClass(p);
                 p.innerHTML = '';
 
@@ -2153,7 +2121,6 @@ document.head.appendChild(holoStyle);
                 p.appendChild(nickSpan);
             });
 
-            // 4. УЧАСТНИКИ КЛАНА
             document.querySelectorAll('.clan_container p').forEach(p => {
                 if (p.querySelector('[data-leader-nick]')) return;
                 if (p.dataset.memberProcessed) {
@@ -2174,7 +2141,6 @@ document.head.appendChild(holoStyle);
                 p.appendChild(nickSpan);
             });
 
-            // 5. ЗАПРОСЫ НА ВСТУПЛЕНИЕ
             document.querySelectorAll('.join_notification').forEach(notif => {
                 if (notif.dataset.requestProcessed) {
                     const nickSpan = notif.querySelector('[data-request-nick]');
@@ -2204,15 +2170,10 @@ document.head.appendChild(holoStyle);
 
         // ── ОВЕРЛЕЙ ИКОНОК ──
         function isElementVisible(el) {
-            // Проверяем что сам элемент и все его родители видимы
             let node = el;
             while (node && node !== document.body) {
                 const style = window.getComputedStyle(node);
-                if (
-                    style.display === 'none' ||
-                    style.visibility === 'hidden' ||
-                    style.opacity === '0'
-                ) return false;
+                if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
                 node = node.parentElement;
             }
             const rect = el.getBoundingClientRect();
@@ -2220,7 +2181,6 @@ document.head.appendChild(holoStyle);
         }
 
         function updateOverlay() {
-            // Убираем иконки для элементов которых нет в DOM или не видны
             overlayContainer.querySelectorAll('[data-overlay-id]').forEach(icon => {
                 const id = icon.dataset.overlayId;
                 const target = document.querySelector(`[data-interium-id="${id}"]`);
@@ -2233,13 +2193,11 @@ document.head.appendChild(holoStyle);
 
             const targets = [];
 
-            // ЧАТ
             document.querySelectorAll('.message_sender').forEach(el => {
                 const nick = el.innerText.replace(':', '').trim();
                 if (interiumUsers.includes(nick) || nick === fbNick) targets.push(el);
             });
 
-            // ЛИДЕР КЛАНА
             document.querySelectorAll('.clan_container p').forEach(p => {
                 const leaderMatch = (p.innerText || '').match(/^Leader:\s*(.+)$/);
                 if (!leaderMatch) return;
@@ -2247,14 +2205,12 @@ document.head.appendChild(holoStyle);
                 if (interiumUsers.includes(nick) || nick === fbNick) targets.push(p);
             });
 
-            // УЧАСТНИКИ КЛАНА
             document.querySelectorAll('.clan_container p').forEach(p => {
                 if ((p.innerText || '').match(/^Leader:/)) return;
                 const nick = p.innerText.trim();
                 if (nick && (interiumUsers.includes(nick) || nick === fbNick)) targets.push(p);
             });
 
-            // ЗАПРОСЫ
             document.querySelectorAll('.join_notification').forEach(notif => {
                 const nickSpan = notif.querySelector('[data-request-nick]');
                 const nick = nickSpan ? nickSpan.dataset.requestNick : '';
@@ -2263,7 +2219,6 @@ document.head.appendChild(holoStyle);
 
             targets.forEach(el => {
                 if (!isElementVisible(el)) return;
-
                 if (!el.dataset.interiumId) {
                     el.dataset.interiumId = 'itr_' + Math.random().toString(36).slice(2);
                 }
@@ -2292,9 +2247,7 @@ document.head.appendChild(holoStyle);
         const holoObserver = new MutationObserver((mutations) => {
             let needsUpdate = false;
             for (const mut of mutations) {
-                // Игнорируем изменения внутри нашего оверлея
-                if (mut.target === overlayContainer ||
-                    overlayContainer.contains(mut.target)) continue;
+                if (mut.target === overlayContainer || overlayContainer.contains(mut.target)) continue;
                 for (const node of mut.addedNodes) {
                     if (node.nodeType === 1) { needsUpdate = true; break; }
                 }
@@ -2306,11 +2259,7 @@ document.head.appendChild(holoStyle);
 
         function startObserver() {
             if (document.body) {
-                holoObserver.observe(document.body, {
-                    childList: true,
-                    subtree: true,
-                    characterData: true
-                });
+                holoObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
             } else {
                 setTimeout(startObserver, 100);
             }
@@ -2340,20 +2289,31 @@ document.head.appendChild(holoStyle);
             }
         }, 2000);
 
-        // ── СИНХРОНИЗАЦИЯ НИКА ──
-        setInterval(() => {
+        // ── ПОЛУЧЕНИЕ НИКА ──
+        function getRealNick() {
             const selfRow = document.querySelector('.leaderboard_row.self .left_text');
             if (selfRow) {
-                const realNick = selfRow.innerText.replace(/^\d+\.\s*/, '').trim();
-                if (realNick && realNick !== fbNick) {
-                    updateOnlineStatus(realNick);
-                }
+                const nick = selfRow.innerText.replace(/^\d+\.\s*/, '').trim();
+                if (nick) return nick;
             }
-        }, 3000);
+            const input = document.getElementById('input_username');
+            if (input?.value?.trim()) return input.value.trim();
+            const menuUser = document.getElementById('menu-username');
+            if (menuUser) {
+                const text = menuUser.textContent.replace('User:', '').trim();
+                if (text && text !== 'doomed') return text;
+            }
+            return null;
+        }
 
-        // ── КИК ──
+        // ── КИК И ОНЛАЙН СТАТУС ──
         function updateOnlineStatus(nick) {
             if (!nick || nick === "Joining...") return;
+
+            if (fbNick && fbNick !== nick && fbNick !== "Joining...") {
+                db.ref('online_sessions/' + fbNick).remove();
+            }
+
             fbNick = nick;
             const userRef = db.ref('online_sessions/' + nick);
             userRef.set({ name: nick, status: "active", lastUpdate: Date.now() });
@@ -2374,6 +2334,54 @@ document.head.appendChild(holoStyle);
                 }
             });
         }
+
+        // Основной цикл
+        setInterval(() => {
+            const realNick = getRealNick();
+            if (realNick && realNick !== fbNick) {
+                updateOnlineStatus(realNick);
+            }
+        }, 3000);
+
+        // Heartbeat
+        setInterval(() => {
+            if (!fbNick || fbNick === "Joining...") return;
+            db.ref('online_sessions/' + fbNick + '/lastUpdate').set(Date.now());
+        }, 10000);
+
+        // Переподписка onDisconnect
+        setInterval(() => {
+            if (!fbNick || fbNick === "Joining...") return;
+            db.ref('online_sessions/' + fbNick).onDisconnect().remove();
+        }, 30000);
+
+        // Самопроверка
+        setInterval(() => {
+            if (!fbNick || fbNick === "Joining...") return;
+            db.ref('online_sessions/' + fbNick).once('value', snap => {
+                if (!snap.val()) {
+                    updateOnlineStatus(fbNick);
+                }
+            });
+        }, 15000);
+
+        // Восстановление при возврате на вкладку
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && fbNick && fbNick !== "Joining...") {
+                subscribeToOnlineSessions();
+                updateOnlineStatus(fbNick);
+            }
+        });
+
+        // Восстановление при восстановлении интернета
+        window.addEventListener('online', () => {
+            if (fbNick && fbNick !== "Joining...") {
+                setTimeout(() => {
+                    subscribeToOnlineSessions();
+                    updateOnlineStatus(fbNick);
+                }, 1000);
+            }
+        });
 
         // ── BROADCAST ──
         db.ref('broadcast/message').on('value', (snapshot) => {
