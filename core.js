@@ -973,74 +973,92 @@ drawGlowArrow(cx, cy, Math.atan2(e.pos[1]-myPos[1], e.pos[0]-myPos[0]), e.dist, 
 //  AIMBOT + TRIGGERBOT
 // ────────────────────────────────────────────────
 function estimateBoltSpeed(d) {
-if (d > 15) return 31.1;
-if (d > 10) return 32.3;
-if (d > 5) return 33.4;
-return 30.9;
+    if (d > 15) return 31.1;
+    if (d > 10) return 32.3;
+    if (d > 5) return 33.4;
+    return 30.9;
 }
 
 function calculateScreenPos(enemy) {
-if (!gameCanvas || !myPos) return {screenX:0, screenY:0};
-const rect = gameCanvas.getBoundingClientRect();
-const scale = (rect.width + rect.height) / 45;
-const cameraX = -(myPos[0] * scale - rect.width / 2);
-const cameraY = -(myPos[1] * scale - rect.height / 2);
-const dx = enemy.pos[0] - myPos[0];
-const dy = enemy.pos[1] - myPos[1];
-const dist = Math.hypot(dx, dy);
-const boltSpeed = estimateBoltSpeed(dist);
-const enemySpeed = Math.hypot(...(enemy.vel || [0,0]));
-const mySpeed = Math.hypot(...myVel);
-const walkSpeed = 4.76;
-const iJumping = mySpeed > walkSpeed + 0.5;
-const enemyJumping = enemySpeed > walkSpeed + 0.5;
-let latencyComp = 0.05, velocityBoost = 1.0, overshoot = 0.4, falloffFactor = 1.0;
-if (features.aimbot.predictionMode === 'custom') {
-latencyComp = features.aimbot.latencyComp;
-velocityBoost = features.aimbot.velocityBoost;
-overshoot = features.aimbot.overshoot;
-falloffFactor = features.aimbot.falloffFactor;
-} else {
-if (enemyJumping && !iJumping) { velocityBoost = 1.3; latencyComp = 0.08; overshoot = 0.8; falloffFactor = 0.85; }
-if (iJumping && !enemyJumping) { latencyComp += 0.03; overshoot += 0.2; }
-if (iJumping && enemyJumping) { latencyComp += 0.05; velocityBoost *= 1.4; falloffFactor *= 0.8; }
-if (enemySpeed < 4.0) { velocityBoost *= 0.95; overshoot *= 0.85; }
-}
-const flightTime = dist / boltSpeed + latencyComp;
-const vx = enemy.vel?.[0] || 0;
-const vy = enemy.vel?.[1] || 0;
-const angle = Math.atan2(dy, dx);
-const tx = enemy.pos[0] + vx * flightTime * velocityBoost * falloffFactor + Math.cos(angle) * overshoot;
-const ty = enemy.pos[1] + vy * flightTime * velocityBoost * falloffFactor + Math.sin(angle) * overshoot;
-return {
-screenX: tx * scale + cameraX + rect.left,
-screenY: ty * scale + cameraY + rect.top
-};
+    if (!gameCanvas || !myPos) return { screenX: 0, screenY: 0 };
+    const rect = gameCanvas.getBoundingClientRect();
+    const scale = (rect.width + rect.height) / 45;
+    const cameraX = -(myPos[0] * scale - rect.width / 2);
+    const cameraY = -(myPos[1] * scale - rect.height / 2);
+    const dx = enemy.pos[0] - myPos[0];
+    const dy = enemy.pos[1] - myPos[1];
+    const dist = Math.hypot(dx, dy);
+    const boltSpeed = estimateBoltSpeed(dist);
+    const enemySpeed = Math.hypot(...(enemy.vel || [0, 0]));
+    const mySpeed = Math.hypot(...myVel);
+    const walkSpeed = 4.76;
+    const iJumping = mySpeed > walkSpeed + 0.5;
+    const enemyJumping = enemySpeed > walkSpeed + 0.5;
+    let latencyComp = 0.05, velocityBoost = 1.0, overshoot = 0.4, falloffFactor = 1.0;
+    if (features.aimbot.predictionMode === 'custom') {
+        latencyComp = features.aimbot.latencyComp;
+        velocityBoost = features.aimbot.velocityBoost;
+        overshoot = features.aimbot.overshoot;
+        falloffFactor = features.aimbot.falloffFactor;
+    } else {
+        if (enemyJumping && !iJumping) { velocityBoost = 1.3; latencyComp = 0.08; overshoot = 0.8; falloffFactor = 0.85; }
+        if (iJumping && !enemyJumping) { latencyComp += 0.03; overshoot += 0.2; }
+        if (iJumping && enemyJumping) { latencyComp += 0.05; velocityBoost *= 1.4; falloffFactor *= 0.8; }
+        if (enemySpeed < 4.0) { velocityBoost *= 0.95; overshoot *= 0.85; }
+    }
+    const flightTime = dist / boltSpeed + latencyComp;
+    const vx = enemy.vel?.[0] || 0;
+    const vy = enemy.vel?.[1] || 0;
+    const angle = Math.atan2(dy, dx);
+    const tx = enemy.pos[0] + vx * flightTime * velocityBoost * falloffFactor + Math.cos(angle) * overshoot;
+    const ty = enemy.pos[1] + vy * flightTime * velocityBoost * falloffFactor + Math.sin(angle) * overshoot;
+    return {
+        screenX: tx * scale + cameraX + rect.left,
+        screenY: ty * scale + cameraY + rect.top
+    };
 }
 
 function performAim(enemy) {
-if (!features.aimbot.enabled || !gameCanvas) return;
-const {screenX, screenY} = calculateScreenPos(enemy);
-gameCanvas.dispatchEvent(new MouseEvent('mousemove', {
-clientX: screenX, clientY: screenY, bubbles: true, cancelable: true
-}));
+    if (!features.aimbot.enabled || !gameCanvas) return;
+    const { screenX, screenY } = calculateScreenPos(enemy);
+    gameCanvas.dispatchEvent(new MouseEvent('mousemove', {
+        clientX: screenX, clientY: screenY, bubbles: true, cancelable: true
+    }));
 }
 
 function checkTrigger(enemy) {
-if (!features.triggerbot.enabled || !enemy || !gameCanvas) return;
-if (enemy.dist < features.triggerbot.minDist || enemy.dist > features.triggerbot.maxDist) return;
-const now = Date.now();
-if (now - lastHitTime < features.triggerbot.fireDelay) return;
-lastHitTime = now;
-const {screenX, screenY} = calculateScreenPos(enemy);
-gameCanvas.dispatchEvent(new MouseEvent('mousedown', {
-button: 0, clientX: screenX, clientY: screenY, bubbles: true
-}));
-setTimeout(() => {
-gameCanvas.dispatchEvent(new MouseEvent('mouseup', {
-button: 0, clientX: screenX, clientY: screenY, bubbles: true
-}));
-}, 35);
+    if (!features.triggerbot.enabled || !enemy || !gameCanvas) return;
+    if (enemy.dist < features.triggerbot.minDist || enemy.dist > features.triggerbot.maxDist) return;
+
+    const now = Date.now();
+
+    // Динамический delay при сближении
+    const dx = enemy.pos[0] - (myPos?.[0] || 0);
+    const dy = enemy.pos[1] - (myPos?.[1] || 0);
+    const dist = Math.hypot(dx, dy);
+    const relVx = (enemy.vel?.[0] || 0) - (myVel?.[0] || 0);
+    const relVy = (enemy.vel?.[1] || 0) - (myVel?.[1] || 0);
+    const approachSpeed = dist > 0 ? -(dx * relVx + dy * relVy) / dist : 0;
+
+    let dynamicDelay = features.triggerbot.fireDelay;
+    if (approachSpeed > 3) dynamicDelay = Math.max(25, dynamicDelay - approachSpeed * 2.5);
+    if (approachSpeed > 8) dynamicDelay = Math.max(20, features.triggerbot.fireDelay * 0.3);
+
+    if (now - lastHitTime < dynamicDelay) return;
+    lastHitTime = now;
+
+    const { screenX, screenY } = calculateScreenPos(enemy);
+    gameCanvas.dispatchEvent(new MouseEvent('mousedown', {
+        button: 0, clientX: screenX, clientY: screenY, bubbles: true
+    }));
+
+    setTimeout(() => {
+        // Пересчёт позиции в момент mouseup
+        const { screenX: sx2, screenY: sy2 } = calculateScreenPos(enemy);
+        gameCanvas.dispatchEvent(new MouseEvent('mouseup', {
+            button: 0, clientX: sx2, clientY: sy2, bubbles: true
+        }));
+    }, 35);
 }
 
 // ────────────────────────────────────────────────
