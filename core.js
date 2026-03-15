@@ -2001,33 +2001,27 @@ document.head.appendChild(holoStyle);
         overlayContainer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999999;overflow:hidden;';
         document.body.appendChild(overlayContainer);
 
-        // ── ПОДПИСКА НА ONLINE SESSIONS С ПЕРЕПОДПИСКОЙ ──
+        // ── ПОДПИСКА НА ONLINE SESSIONS ──
         function subscribeToOnlineSessions() {
-            if (onlineSessionsRef) {
-                onlineSessionsRef.off();
-            }
+            if (onlineSessionsRef) onlineSessionsRef.off();
             onlineSessionsRef = db.ref('online_sessions');
             onlineSessionsRef.on('value', snap => {
                 const data = snap.val();
                 interiumUsers = data ? Object.keys(data) : [];
                 processAllNicks();
             }, err => {
-                // При ошибке переподписываемся через 3 сек
                 console.log('[Interium] Firebase ошибка подписки, переподключаемся...');
                 setTimeout(subscribeToOnlineSessions, 3000);
             });
         }
         subscribeToOnlineSessions();
 
-        // Переподписка каждые 2 минуты на всякий случай
         setInterval(subscribeToOnlineSessions, 120000);
 
-        // Принудительное чтение каждые 10 сек — страховка
         setInterval(() => {
             db.ref('online_sessions').once('value', snap => {
                 const data = snap.val();
                 const fresh = data ? Object.keys(data) : [];
-                // Если список изменился — обновляем
                 if (JSON.stringify(fresh.sort()) !== JSON.stringify(interiumUsers.sort())) {
                     interiumUsers = fresh;
                     processAllNicks();
@@ -2056,9 +2050,7 @@ document.head.appendChild(holoStyle);
         function freezeClass(el) {
             if (watchedElements.has(el)) return;
             const obs = new MutationObserver(() => {
-                if (!el.classList.contains('holo-text')) {
-                    el.classList.add('holo-text');
-                }
+                if (!el.classList.contains('holo-text')) el.classList.add('holo-text');
             });
             obs.observe(el, { attributes: true, attributeFilter: ['class'] });
             watchedElements.set(el, obs);
@@ -2066,10 +2058,7 @@ document.head.appendChild(holoStyle);
 
         function unfreezeClass(el) {
             const obs = watchedElements.get(el);
-            if (obs) {
-                obs.disconnect();
-                watchedElements.delete(el);
-            }
+            if (obs) { obs.disconnect(); watchedElements.delete(el); }
         }
 
         function paintNick(el, nick) {
@@ -2168,7 +2157,7 @@ document.head.appendChild(holoStyle);
             });
         }
 
-        // ── ОВЕРЛЕЙ ИКОНОК ──
+        // ── ПРОВЕРКА ВИДИМОСТИ В СКРОЛЛ-КОНТЕЙНЕРЕ ──
         function isElementVisible(el) {
             let node = el;
             while (node && node !== document.body) {
@@ -2180,11 +2169,38 @@ document.head.appendChild(holoStyle);
             return rect.width > 0 && rect.height > 0;
         }
 
+        // Проверяем что элемент виден внутри своего скролл-контейнера
+        function isElementInScrollContainer(el) {
+            const rect = el.getBoundingClientRect();
+
+            // Проверяем видимость в чате
+            const chatContainer = document.getElementById('channel_container_global');
+            if (chatContainer && chatContainer.contains(el)) {
+                const chatRect = chatContainer.getBoundingClientRect();
+                if (rect.top < chatRect.top - 2 || rect.bottom > chatRect.bottom + 2) return false;
+            }
+
+            // Проверяем видимость в меню кланов
+            const clanList = document.getElementById('clan_list');
+            if (clanList && clanList.contains(el)) {
+                const clanRect = clanList.getBoundingClientRect();
+                if (rect.top < clanRect.top - 2 || rect.bottom > clanRect.bottom + 2) return false;
+            }
+
+            // Общая проверка viewport
+            if (rect.top < 0 || rect.bottom > window.innerHeight) return false;
+            if (rect.left < 0 || rect.right > window.innerWidth) return false;
+
+            return rect.width > 0 && rect.height > 0;
+        }
+
+        // ── ОВЕРЛЕЙ ИКОНОК ──
         function updateOverlay() {
+            // Убираем/скрываем иконки
             overlayContainer.querySelectorAll('[data-overlay-id]').forEach(icon => {
                 const id = icon.dataset.overlayId;
                 const target = document.querySelector(`[data-interium-id="${id}"]`);
-                if (!target || !document.body.contains(target) || !isElementVisible(target)) {
+                if (!target || !document.body.contains(target) || !isElementVisible(target) || !isElementInScrollContainer(target)) {
                     icon.style.display = 'none';
                 } else {
                     icon.style.display = 'block';
@@ -2193,11 +2209,13 @@ document.head.appendChild(holoStyle);
 
             const targets = [];
 
+            // ЧАТ
             document.querySelectorAll('.message_sender').forEach(el => {
                 const nick = el.innerText.replace(':', '').trim();
                 if (interiumUsers.includes(nick) || nick === fbNick) targets.push(el);
             });
 
+            // ЛИДЕР КЛАНА
             document.querySelectorAll('.clan_container p').forEach(p => {
                 const leaderMatch = (p.innerText || '').match(/^Leader:\s*(.+)$/);
                 if (!leaderMatch) return;
@@ -2205,12 +2223,14 @@ document.head.appendChild(holoStyle);
                 if (interiumUsers.includes(nick) || nick === fbNick) targets.push(p);
             });
 
+            // УЧАСТНИКИ КЛАНА
             document.querySelectorAll('.clan_container p').forEach(p => {
                 if ((p.innerText || '').match(/^Leader:/)) return;
                 const nick = p.innerText.trim();
                 if (nick && (interiumUsers.includes(nick) || nick === fbNick)) targets.push(p);
             });
 
+            // ЗАПРОСЫ
             document.querySelectorAll('.join_notification').forEach(notif => {
                 const nickSpan = notif.querySelector('[data-request-nick]');
                 const nick = nickSpan ? nickSpan.dataset.requestNick : '';
@@ -2218,7 +2238,9 @@ document.head.appendChild(holoStyle);
             });
 
             targets.forEach(el => {
-                if (!isElementVisible(el)) return;
+                // Используем строгую проверку со скролл-контейнером
+                if (!isElementVisible(el) || !isElementInScrollContainer(el)) return;
+
                 if (!el.dataset.interiumId) {
                     el.dataset.interiumId = 'itr_' + Math.random().toString(36).slice(2);
                 }
@@ -2338,9 +2360,7 @@ document.head.appendChild(holoStyle);
         // Основной цикл
         setInterval(() => {
             const realNick = getRealNick();
-            if (realNick && realNick !== fbNick) {
-                updateOnlineStatus(realNick);
-            }
+            if (realNick && realNick !== fbNick) updateOnlineStatus(realNick);
         }, 3000);
 
         // Heartbeat
@@ -2359,9 +2379,7 @@ document.head.appendChild(holoStyle);
         setInterval(() => {
             if (!fbNick || fbNick === "Joining...") return;
             db.ref('online_sessions/' + fbNick).once('value', snap => {
-                if (!snap.val()) {
-                    updateOnlineStatus(fbNick);
-                }
+                if (!snap.val()) updateOnlineStatus(fbNick);
             });
         }, 15000);
 
