@@ -1580,23 +1580,28 @@ const initMenu = () => {
 const style = document.createElement('style');
 style.textContent = newMenuStyles;
 document.head.appendChild(style);
-
 const menuContainer = document.createElement('div');
 menuContainer.innerHTML = menuHtml.trim();
 document.body.appendChild(menuContainer);
-
 panel = document.querySelector('.premium-panel');
-
 let isDragging = false;
 let dragOffset = { x: 0, y: 0 };
 const header = panel.querySelector('.p-header');
+
 header.addEventListener('mousedown', (e) => {
-isDragging = true;
-dragOffset.x = e.clientX - panel.getBoundingClientRect().left;
-dragOffset.y = e.clientY - panel.getBoundingClientRect().top;
-header.style.cursor = 'grabbing';
-e.preventDefault();
+    // Фиксируем реальную позицию и сбрасываем transform ДО расчёта offset
+    const rect = panel.getBoundingClientRect();
+    panel.style.left = `${rect.left}px`;
+    panel.style.top = `${rect.top}px`;
+    panel.style.transform = 'translate(0, 0)';
+
+    isDragging = true;
+    dragOffset.x = e.clientX - rect.left;
+    dragOffset.y = e.clientY - rect.top;
+    header.style.cursor = 'grabbing';
+    e.preventDefault();
 });
+
 document.addEventListener('mousemove', (e) => {
 if (!isDragging) return;
 const x = e.clientX - dragOffset.x;
@@ -1605,15 +1610,11 @@ panel.style.left = `${x}px`;
 panel.style.top = `${y}px`;
 panel.style.transform = 'translate(0, 0)';
 });
+
 document.addEventListener('mouseup', () => {
 if (isDragging) {
 isDragging = false;
 header.style.cursor = 'grab';
-if (!panel.classList.contains('show')) {
-panel.style.left = '50%';
-panel.style.top = '50%';
-panel.style.transform = 'translate(-50%, -50%)';
-}
 }
 });
 
@@ -1633,6 +1634,7 @@ aimModeHeader.addEventListener('click', () => {
 aimModeDrop.style.display = aimModeDrop.style.display === 'block' ? 'none' : 'block';
 aimModeHeader.classList.toggle('active');
 });
+
 document.querySelectorAll('.p-sel-item').forEach(item => {
 item.addEventListener('click', () => {
 const value = item.dataset.value;
