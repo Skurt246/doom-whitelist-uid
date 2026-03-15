@@ -1,4 +1,6 @@
-     // ────────────────────────────────────────────────
+(function() {
+'use strict';
+// ────────────────────────────────────────────────
     //  ✅ MSGPACK ДЕКОДЕР
     // ────────────────────────────────────────────────
     const msgpackDecode = (() => {
@@ -2456,3 +2458,4 @@ function mainLoop() {
 
 requestAnimationFrame(mainLoop);
 console.log('%c[Interium] v14.0 Loaded', 'color:#24e9ff;font-weight:bold;font-size:14px');
+})();
