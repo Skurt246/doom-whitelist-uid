@@ -572,45 +572,43 @@ autoCraft: { enabled: false, bind: null, name: "AutoCraft " }
 // ────────────────────────────────────────────────
 const OriginalWS = window.WebSocket;
 window.WebSocket = function(...args) {
-    const ws = new OriginalWS(...args);
-    window._activeWS = ws;
-    ws.addEventListener('message', e => {
-        if (!(e.data instanceof ArrayBuffer)) return;
-        try {
-            const decoded = msgpackDecode(e.data);
-            if (decoded?.header === 'update') {
-                const ud = decoded.user_data;
-                if (ud?.user_obj_id) myObjId = ud.user_obj_id;
-                if ("clan_name" in ud) myClan = ud.clan_name;
-                const ups = decoded.entity_updates;
-                if (ups) {
-                    for (const [idStr, obj] of Object.entries(ups)) {
-                        const pos = obj.position;
-                        const user = obj.user;
-                        const vel = obj.velocity;
-                        if (Array.isArray(pos) && pos.length === 2) {
-                            if (idStr === String(myObjId) && user?.username) {
-                                myPos = [...pos];
-                                myVel = Array.isArray(vel) ? vel : [0,0];
-                                if (user.clanName) myClan = user.clanName;
-                                continue;
-                            }
-                            if (user?.username) {
-                                players.set(idStr, {
-                                    nick: user.username,
-                                    pos: [...pos],
-                                    vel: Array.isArray(vel) ? vel : [0,0],
-                                    time: Date.now(),
-                                    user
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (err) { console.error("WS decode error:", err); }
-    });
-    return ws;
+const ws = new OriginalWS(...args);
+ws.addEventListener('message', e => {
+try {
+const decoded = msgpackDecode(e.data);
+if (decoded?.header === 'update') {
+const ud = decoded.user_data;
+if (ud?.user_obj_id) myObjId = ud.user_obj_id;
+if ("clan_name" in ud) myClan = ud.clan_name;
+const ups = decoded.entity_updates;
+if (ups) {
+for (const [idStr, obj] of Object.entries(ups)) {
+const pos = obj.position;
+const user = obj.user;
+const vel = obj.velocity;
+if (Array.isArray(pos) && pos.length === 2) {
+if (idStr === String(myObjId) && user?.username) {
+myPos = [...pos];
+myVel = Array.isArray(vel) ? vel : [0,0];
+if (user.clanName) myClan = user.clanName;
+continue;
+}
+if (user?.username) {
+players.set(idStr, {
+nick: user.username,
+pos: [...pos],
+vel: Array.isArray(vel) ? vel : [0,0],
+time: Date.now(),
+user
+});
+}
+}
+}
+}
+}
+} catch (err) { console.error("WS decode error:", err); }
+});
+return ws;
 };
 Object.assign(window.WebSocket, OriginalWS);
 window.WebSocket.prototype = OriginalWS.prototype;
@@ -2357,7 +2355,7 @@ document.head.appendChild(holoStyle);
             });
         }
 
-        // Основной цикл
+// Основной цикл
         setInterval(() => {
             const realNick = getRealNick();
             if (realNick && realNick !== fbNick) updateOnlineStatus(realNick);
@@ -2413,4 +2411,48 @@ document.head.appendChild(holoStyle);
             }
         });
     }
+
 })();
+
+// ────────────────────────────────────────────────
+//  ✅ MAIN LOOP
+// ────────────────────────────────────────────────
+function mainLoop() {
+    if (!gameCanvas) {
+        gameCanvas = document.querySelector('canvas');
+    }
+
+    if (myPos && gameCanvas) {
+        const nearest = findNearestEnemy();
+        const enemies = findAllEnemies();
+
+        if (nearest) {
+            if (features.aimbot.enabled) performAim(nearest);
+            if (features.triggerbot.enabled) checkTrigger(nearest);
+        }
+
+        if (features.arrows.enabled) {
+            setupArrowCanvas();
+            if (arrowCtx) {
+                const rect = gameCanvas.getBoundingClientRect();
+                const filtered = features.arrows.ignoreTeam
+                    ? enemies.filter(e => !e.teammate)
+                    : enemies;
+                drawAllArrows(
+                    rect.left + rect.width / 2,
+                    rect.top + rect.height / 2,
+                    filtered
+                );
+            }
+        } else {
+            if (arrowCtx && arrowCanvas) {
+                arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
+            }
+        }
+    }
+
+    requestAnimationFrame(mainLoop);
+}
+
+requestAnimationFrame(mainLoop);
+console.log('%c[Interium] v14.0 Loaded', 'color:#24e9ff;font-weight:bold;font-size:14px');
