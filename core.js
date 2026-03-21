@@ -574,43 +574,54 @@ autoCraft: { enabled: false, bind: null, name: "AutoCraft " }
 // ────────────────────────────────────────────────
 const OriginalWS = window.WebSocket;
 window.WebSocket = function(...args) {
-const ws = new OriginalWS(...args);
-ws.addEventListener('message', e => {
-try {
-const decoded = msgpackDecode(e.data);
-if (decoded?.header === 'update') {
-const ud = decoded.user_data;
-if (ud?.user_obj_id) myObjId = ud.user_obj_id;
-if ("clan_name" in ud) myClan = ud.clan_name;
-const ups = decoded.entity_updates;
-if (ups) {
-for (const [idStr, obj] of Object.entries(ups)) {
-const pos = obj.position;
-const user = obj.user;
-const vel = obj.velocity;
-if (Array.isArray(pos) && pos.length === 2) {
-if (idStr === String(myObjId) && user?.username) {
-myPos = [...pos];
-myVel = Array.isArray(vel) ? vel : [0,0];
-if (user.clanName) myClan = user.clanName;
-continue;
-}
-if (user?.username) {
-players.set(idStr, {
-nick: user.username,
-pos: [...pos],
-vel: Array.isArray(vel) ? vel : [0,0],
-time: Date.now(),
-user
-});
-}
-}
-}
-}
-}
-} catch (err) { console.error("WS decode error:", err); }
-});
-return ws;
+    const ws = new OriginalWS(...args);
+    window._activeWS = ws;
+
+    ws.addEventListener('message', e => {
+        const processData = (buffer) => {
+            try {
+                const decoded = msgpackDecode(buffer);
+                if (decoded?.header === 'update') {
+                    const ud = decoded.user_data;
+                    if (ud?.user_obj_id) myObjId = ud.user_obj_id;
+                    if ("clan_name" in ud) myClan = ud.clan_name;
+                    const ups = decoded.entity_updates;
+                    if (ups) {
+                        for (const [idStr, obj] of Object.entries(ups)) {
+                            const pos = obj.position;
+                            const user = obj.user;
+                            const vel = obj.velocity;
+                            if (Array.isArray(pos) && pos.length === 2) {
+                                if (idStr === String(myObjId) && user?.username) {
+                                    myPos = [...pos];
+                                    myVel = Array.isArray(vel) ? vel : [0, 0];
+                                    if (user.clanName) myClan = user.clanName;
+                                    continue;
+                                }
+                                if (user?.username) {
+                                    players.set(idStr, {
+                                        nick: user.username,
+                                        pos: [...pos],
+                                        vel: Array.isArray(vel) ? vel : [0, 0],
+                                        time: Date.now(),
+                                        user
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (err) { console.error("WS decode error:", err); }
+        };
+
+        if (e.data instanceof ArrayBuffer) {
+            processData(e.data);
+        } else if (e.data instanceof Blob) {
+            e.data.arrayBuffer().then(buf => processData(buf));
+        }
+    });
+
+    return ws;
 };
 Object.assign(window.WebSocket, OriginalWS);
 window.WebSocket.prototype = OriginalWS.prototype;
@@ -1949,40 +1960,52 @@ setInterval(hack, 1000);
 //  ✅ INTERIUM ONLINE / HOLO
 // ────────────────────────────────────────────────
 
-const INTERIUM_ICON = 'https://i.postimg.cc/KjtjVMcP/interium.jpg';
-
-const holoStyle = document.createElement('style');
-holoStyle.innerHTML = `
-    .holo-text {
-        background: linear-gradient(120deg, #0055ff, #00e5ff, #0055ff) !important;
-        background-size: 200% auto !important;
-        -webkit-background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        animation: holo-shift 3s linear infinite !important;
-        font-weight: bold !important;
-        will-change: background-position;
-    }
-    @keyframes holo-shift {
-        from { background-position: 0% center; }
-        to { background-position: 200% center; }
-    }
-    .leader-label {
-        color: #ff3333 !important;
-        font-weight: bold;
-        -webkit-text-fill-color: #ff3333 !important;
-    }
-    #interium-overlay img {
-        position: fixed;
-        width: 14px;
-        height: 14px;
-        object-fit: contain;
-        border-radius: 2px;
-        pointer-events: none;
-    }
-`;
-document.head.appendChild(holoStyle);
+// ────────────────────────────────────────────────
+//  ✅ INTERIUM GREEN EDITION - FULL SOURCE (V3)
+//  Fixed Leaderboard Order: Number -> Icon -> Nick
+// ────────────────────────────────────────────────
 
 (function() {
+    const holoStyle = document.createElement('style');
+    holoStyle.innerHTML = `
+        .holo-text {
+            background: linear-gradient(120deg, #2ecc71, #27ae60, #a2ffd1) !important;
+            background-size: 200% auto !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            animation: holo-shift 3s linear infinite !important;
+            font-weight: bold !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            will-change: background-position;
+        }
+        /* Иконка теперь привязана только к нику, а не к цифре */
+        .interium-user-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .interium-user-wrap::before {
+            content: '';
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM0YmY1YmYiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTYgMjF2LTJhNCA0IDAgMCAwLTQtNGgtNGE0IDQgMCAwIDAtNCA0djIiPjwvcGF0aD48Y2lyY2xlIGN4PSI5IiBjeT0iNyIgcj0iNCI+PC9jaXJjbGU+PHBhdGggZD0iTTIyIDExbC0zIDMgLTEuNS0xLjUiPjwvcGF0aD48L3N2Zz4=');
+            background-size: contain;
+            background-repeat: no-repeat;
+            -webkit-text-fill-color: initial;
+            filter: drop-shadow(0 0 1px rgba(0,0,0,0.5));
+            flex-shrink: 0;
+        }
+        @keyframes holo-shift {
+            from { background-position: 0% center; }
+            to { background-position: 200% center; }
+        }
+        .leader-label { color: #ff4d4d !important; font-weight: bold; }
+    `;
+    document.head.appendChild(holoStyle);
+
     const firebaseScripts = [
         "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js",
         "https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"
@@ -2011,50 +2034,24 @@ document.head.appendChild(holoStyle);
         const db = firebase.database();
         let fbNick = "Joining...";
         let interiumUsers = [];
-        let onlineSessionsRef = null;
 
-        // ── ОВЕРЛЕЙ ──
-        const overlayContainer = document.createElement('div');
-        overlayContainer.id = 'interium-overlay';
-        overlayContainer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999999;overflow:hidden;';
-        document.body.appendChild(overlayContainer);
-
-        // ── ПОДПИСКА НА ONLINE SESSIONS ──
         function subscribeToOnlineSessions() {
-            if (onlineSessionsRef) onlineSessionsRef.off();
-            onlineSessionsRef = db.ref('online_sessions');
-            onlineSessionsRef.on('value', snap => {
+            db.ref('online_sessions').on('value', snap => {
                 const data = snap.val();
                 interiumUsers = data ? Object.keys(data) : [];
                 processAllNicks();
-            }, err => {
-                console.log('[Interium] Firebase ошибка подписки, переподключаемся...');
-                setTimeout(subscribeToOnlineSessions, 3000);
             });
         }
         subscribeToOnlineSessions();
 
-        setInterval(subscribeToOnlineSessions, 120000);
-
-        setInterval(() => {
-            db.ref('online_sessions').once('value', snap => {
-                const data = snap.val();
-                const fresh = data ? Object.keys(data) : [];
-                if (JSON.stringify(fresh.sort()) !== JSON.stringify(interiumUsers.sort())) {
-                    interiumUsers = fresh;
-                    processAllNicks();
-                }
-            });
-        }, 10000);
-
-        // ── ХУК CANVAS ──
+        // ── CANVAS HOOK ──
         const _fillText = CanvasRenderingContext2D.prototype.fillText;
         CanvasRenderingContext2D.prototype.fillText = function(t, x, y, maxWidth) {
             if (typeof t === 'string' && interiumUsers.some(u => t.includes(u))) {
                 const oldStyle = this.fillStyle;
                 const gradient = this.createLinearGradient(x - 40, y, x + 40, y);
-                gradient.addColorStop(0, "#0055ff");
-                gradient.addColorStop(1, "#00e5ff");
+                gradient.addColorStop(0, "#2ecc71");
+                gradient.addColorStop(1, "#27ae60");
                 this.fillStyle = gradient;
                 _fillText.call(this, t, x, y, maxWidth);
                 this.fillStyle = oldStyle;
@@ -2063,375 +2060,76 @@ document.head.appendChild(holoStyle);
             return _fillText.call(this, t, x, y, maxWidth);
         };
 
-        const watchedElements = new WeakMap();
-
-        function freezeClass(el) {
-            if (watchedElements.has(el)) return;
-            const obs = new MutationObserver(() => {
-                if (!el.classList.contains('holo-text')) el.classList.add('holo-text');
-            });
-            obs.observe(el, { attributes: true, attributeFilter: ['class'] });
-            watchedElements.set(el, obs);
-        }
-
-        function unfreezeClass(el) {
-            const obs = watchedElements.get(el);
-            if (obs) { obs.disconnect(); watchedElements.delete(el); }
-        }
-
-        function paintNick(el, nick) {
+        function paintElement(el, nick) {
             if (interiumUsers.includes(nick) || nick === fbNick) {
-                if (!el.classList.contains('holo-text')) el.classList.add('holo-text');
-                freezeClass(el);
+                el.classList.add('holo-text', 'interium-user-wrap');
             } else {
-                unfreezeClass(el);
-                el.classList.remove('holo-text');
+                el.classList.remove('holo-text', 'interium-user-wrap');
             }
         }
 
         function processAllNicks() {
+            // 1. Лидерборд (Цифра -> Иконка -> Ник)
             document.querySelectorAll('.leaderboard_row .left_text').forEach(row => {
-                const nick = row.innerText.replace(/^\d+\.\s*/, '').trim();
-                paintNick(row, nick);
+                const rawText = row.innerText;
+                const match = rawText.match(/^(\d+\.\s*)(.+)$/); // Отделяем "3. " от "дерево"
+                if (match) {
+                    const numberPart = match[1];
+                    const nickPart = match[2].trim();
+
+                    // Чтобы не перерисовывать постоянно, проверяем флаг
+                    if (!row.dataset.interiumProcessed || row.dataset.lastNick !== nickPart) {
+                        row.innerHTML = `${numberPart}<span class="nick-internal">${nickPart}</span>`;
+                        row.dataset.interiumProcessed = "true";
+                        row.dataset.lastNick = nickPart;
+                    }
+                    paintElement(row.querySelector('.nick-internal'), nickPart);
+                }
             });
 
+            // 2. Чат
             document.querySelectorAll('.message_sender').forEach(sender => {
                 const nick = sender.innerText.replace(':', '').trim();
-                paintNick(sender, nick);
+                paintElement(sender, nick);
             });
 
-            document.querySelectorAll('.clan_container p').forEach(p => {
-                const text = p.innerText || '';
-                const leaderMatch = text.match(/^Leader:\s*(.+)$/);
-                if (!leaderMatch) return;
-
-                const nick = leaderMatch[1].trim();
-                const existing = p.querySelector('[data-leader-nick]');
-
-                if (existing && existing.dataset.leaderNick === nick) {
-                    paintNick(existing, nick);
-                    return;
-                }
-
-                unfreezeClass(p);
-                p.innerHTML = '';
-
-                const labelSpan = document.createElement('span');
-                labelSpan.className = 'leader-label';
-                labelSpan.textContent = 'Leader: ';
-                p.appendChild(labelSpan);
-
-                const nickSpan = document.createElement('span');
-                nickSpan.textContent = nick;
-                nickSpan.dataset.leaderNick = nick;
-                paintNick(nickSpan, nick);
-                p.appendChild(nickSpan);
-            });
-
-            document.querySelectorAll('.clan_container p').forEach(p => {
-                if (p.querySelector('[data-leader-nick]')) return;
-                if (p.dataset.memberProcessed) {
-                    const nickSpan = p.querySelector('[data-member-nick]');
-                    if (nickSpan) paintNick(nickSpan, nickSpan.dataset.memberNick);
-                    return;
-                }
-                const nick = p.innerText.trim();
-                if (!nick) return;
-
-                p.dataset.memberProcessed = "true";
-                p.innerHTML = '';
-
-                const nickSpan = document.createElement('span');
-                nickSpan.textContent = nick;
-                nickSpan.dataset.memberNick = nick;
-                paintNick(nickSpan, nick);
-                p.appendChild(nickSpan);
-            });
-
-            document.querySelectorAll('.join_notification').forEach(notif => {
-                if (notif.dataset.requestProcessed) {
-                    const nickSpan = notif.querySelector('[data-request-nick]');
-                    if (nickSpan) paintNick(nickSpan, nickSpan.dataset.requestNick);
-                    return;
-                }
-
-                let nickText = '';
-                let nickNode = null;
-                notif.childNodes.forEach(node => {
-                    if (node.nodeType === 3) {
-                        const t = node.textContent.trim();
-                        if (t) { nickText = t; nickNode = node; }
-                    }
-                });
-
-                if (!nickText || !nickNode) return;
-                notif.dataset.requestProcessed = "true";
-
-                const nickSpan = document.createElement('span');
-                nickSpan.textContent = nickText;
-                nickSpan.dataset.requestNick = nickText;
-                paintNick(nickSpan, nickText);
-                notif.replaceChild(nickSpan, nickNode);
+            // 3. Кланы и уведомления
+            document.querySelectorAll('.clan_container p, .join_notification').forEach(el => {
+                const nick = el.innerText.replace('Leader:', '').trim();
+                if (nick) paintElement(el, nick);
             });
         }
 
-        // ── ПРОВЕРКА ВИДИМОСТИ В СКРОЛЛ-КОНТЕЙНЕРЕ ──
-        function isElementVisible(el) {
-            let node = el;
-            while (node && node !== document.body) {
-                const style = window.getComputedStyle(node);
-                if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
-                node = node.parentElement;
-            }
-            const rect = el.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0;
-        }
+        const globalObserver = new MutationObserver(processAllNicks);
+        globalObserver.observe(document.body, { childList: true, subtree: true });
 
-        // Проверяем что элемент виден внутри своего скролл-контейнера
-        function isElementInScrollContainer(el) {
-            const rect = el.getBoundingClientRect();
-
-            // Проверяем видимость в чате
-            const chatContainer = document.getElementById('channel_container_global');
-            if (chatContainer && chatContainer.contains(el)) {
-                const chatRect = chatContainer.getBoundingClientRect();
-                if (rect.top < chatRect.top - 2 || rect.bottom > chatRect.bottom + 2) return false;
-            }
-
-            // Проверяем видимость в меню кланов
-            const clanList = document.getElementById('clan_list');
-            if (clanList && clanList.contains(el)) {
-                const clanRect = clanList.getBoundingClientRect();
-                if (rect.top < clanRect.top - 2 || rect.bottom > clanRect.bottom + 2) return false;
-            }
-
-            // Общая проверка viewport
-            if (rect.top < 0 || rect.bottom > window.innerHeight) return false;
-            if (rect.left < 0 || rect.right > window.innerWidth) return false;
-
-            return rect.width > 0 && rect.height > 0;
-        }
-
-        // ── ОВЕРЛЕЙ ИКОНОК ──
-        function updateOverlay() {
-            // Убираем/скрываем иконки
-            overlayContainer.querySelectorAll('[data-overlay-id]').forEach(icon => {
-                const id = icon.dataset.overlayId;
-                const target = document.querySelector(`[data-interium-id="${id}"]`);
-                if (!target || !document.body.contains(target) || !isElementVisible(target) || !isElementInScrollContainer(target)) {
-                    icon.style.display = 'none';
-                } else {
-                    icon.style.display = 'block';
-                }
-            });
-
-            const targets = [];
-
-            // ЧАТ
-            document.querySelectorAll('.message_sender').forEach(el => {
-                const nick = el.innerText.replace(':', '').trim();
-                if (interiumUsers.includes(nick) || nick === fbNick) targets.push(el);
-            });
-
-            // ЛИДЕР КЛАНА
-            document.querySelectorAll('.clan_container p').forEach(p => {
-                const leaderMatch = (p.innerText || '').match(/^Leader:\s*(.+)$/);
-                if (!leaderMatch) return;
-                const nick = leaderMatch[1].trim();
-                if (interiumUsers.includes(nick) || nick === fbNick) targets.push(p);
-            });
-
-            // УЧАСТНИКИ КЛАНА
-            document.querySelectorAll('.clan_container p').forEach(p => {
-                if ((p.innerText || '').match(/^Leader:/)) return;
-                const nick = p.innerText.trim();
-                if (nick && (interiumUsers.includes(nick) || nick === fbNick)) targets.push(p);
-            });
-
-            // ЗАПРОСЫ
-            document.querySelectorAll('.join_notification').forEach(notif => {
-                const nickSpan = notif.querySelector('[data-request-nick]');
-                const nick = nickSpan ? nickSpan.dataset.requestNick : '';
-                if (nick && (interiumUsers.includes(nick) || nick === fbNick)) targets.push(notif);
-            });
-
-            targets.forEach(el => {
-                // Используем строгую проверку со скролл-контейнером
-                if (!isElementVisible(el) || !isElementInScrollContainer(el)) return;
-
-                if (!el.dataset.interiumId) {
-                    el.dataset.interiumId = 'itr_' + Math.random().toString(36).slice(2);
-                }
-                const id = el.dataset.interiumId;
-                const rect = el.getBoundingClientRect();
-
-                let icon = overlayContainer.querySelector(`[data-overlay-id="${id}"]`);
-                if (!icon) {
-                    icon = document.createElement('img');
-                    icon.src = INTERIUM_ICON;
-                    icon.dataset.overlayId = id;
-                    overlayContainer.appendChild(icon);
-                }
-
-                icon.style.display = 'block';
-                icon.style.left = (rect.left - 18) + 'px';
-                icon.style.top = (rect.top + rect.height / 2 - 7) + 'px';
-            });
-        }
-
-        setInterval(updateOverlay, 100);
-        window.addEventListener('scroll', updateOverlay, true);
-        window.addEventListener('resize', updateOverlay);
-
-        // ── MUTATION OBSERVER ──
-        const holoObserver = new MutationObserver((mutations) => {
-            let needsUpdate = false;
-            for (const mut of mutations) {
-                if (mut.target === overlayContainer || overlayContainer.contains(mut.target)) continue;
-                for (const node of mut.addedNodes) {
-                    if (node.nodeType === 1) { needsUpdate = true; break; }
-                }
-                if (mut.type === 'characterData' || mut.type === 'childList') needsUpdate = true;
-                if (needsUpdate) break;
-            }
-            if (needsUpdate) processAllNicks();
-        });
-
-        function startObserver() {
-            if (document.body) {
-                holoObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
-            } else {
-                setTimeout(startObserver, 100);
-            }
-        }
-        startObserver();
-
-        setInterval(processAllNicks, 5000);
-
-        // ── ЛОГИ ЧАТА ──
-        setInterval(() => {
-            const chatContainer = document.getElementById('channel_container_global');
-            if (chatContainer && !chatContainer.dataset.observed) {
-                chatContainer.dataset.observed = "true";
-                new MutationObserver((mutations) => {
-                    mutations.forEach((m) => {
-                        m.addedNodes.forEach((node) => {
-                            if (node.innerText && !node.classList?.contains('message_title')) {
-                                db.ref('logs/chat').push({
-                                    from: fbNick,
-                                    msg: node.innerText.trim(),
-                                    time: new Date().toLocaleTimeString()
-                                });
-                            }
-                        });
-                    });
-                }).observe(chatContainer, { childList: true });
-            }
-        }, 2000);
-
-        // ── ПОЛУЧЕНИЕ НИКА ──
+        // Система статуса и прочее
         function getRealNick() {
             const selfRow = document.querySelector('.leaderboard_row.self .left_text');
-            if (selfRow) {
-                const nick = selfRow.innerText.replace(/^\d+\.\s*/, '').trim();
-                if (nick) return nick;
-            }
-            const input = document.getElementById('input_username');
-            if (input?.value?.trim()) return input.value.trim();
-            const menuUser = document.getElementById('menu-username');
-            if (menuUser) {
-                const text = menuUser.textContent.replace('User:', '').trim();
-                if (text && text !== 'doomed') return text;
-            }
+            if (selfRow) return selfRow.innerText.replace(/^\d+\.\s*/, '').trim();
             return null;
         }
 
-        // ── КИК И ОНЛАЙН СТАТУС ──
-        function updateOnlineStatus(nick) {
-            if (!nick || nick === "Joining...") return;
-
-            if (fbNick && fbNick !== nick && fbNick !== "Joining...") {
-                db.ref('online_sessions/' + fbNick).remove();
-            }
-
-            fbNick = nick;
-            const userRef = db.ref('online_sessions/' + nick);
-            userRef.set({ name: nick, status: "active", lastUpdate: Date.now() });
-            userRef.onDisconnect().remove();
-
-            const kickRef = db.ref('kick/' + nick);
-            kickRef.off();
-            kickRef.on('value', (snapshot) => {
-                if (snapshot.val() === true) {
-                    kickRef.set(null);
-                    const ws = window._activeWS;
-                    if (ws) {
-                        ws.onmessage = null;
-                        ws.onclose = null;
-                        ws.onerror = null;
-                        ws.close(1000);
-                    }
-                }
-            });
-        }
-
-// Основной цикл
         setInterval(() => {
-            const realNick = getRealNick();
-            if (realNick && realNick !== fbNick) updateOnlineStatus(realNick);
+            const nick = getRealNick();
+            if (nick && nick !== fbNick) {
+                fbNick = nick;
+                db.ref('online_sessions/' + nick).set({ name: nick, status: "active", lastUpdate: Date.now() });
+                db.ref('online_sessions/' + nick).onDisconnect().remove();
+            }
         }, 3000);
 
-        // Heartbeat
-        setInterval(() => {
-            if (!fbNick || fbNick === "Joining...") return;
-            db.ref('online_sessions/' + fbNick + '/lastUpdate').set(Date.now());
-        }, 10000);
-
-        // Переподписка onDisconnect
-        setInterval(() => {
-            if (!fbNick || fbNick === "Joining...") return;
-            db.ref('online_sessions/' + fbNick).onDisconnect().remove();
-        }, 30000);
-
-        // Самопроверка
-        setInterval(() => {
-            if (!fbNick || fbNick === "Joining...") return;
-            db.ref('online_sessions/' + fbNick).once('value', snap => {
-                if (!snap.val()) updateOnlineStatus(fbNick);
-            });
-        }, 15000);
-
-        // Восстановление при возврате на вкладку
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && fbNick && fbNick !== "Joining...") {
-                subscribeToOnlineSessions();
-                updateOnlineStatus(fbNick);
-            }
-        });
-
-        // Восстановление при восстановлении интернета
-        window.addEventListener('online', () => {
-            if (fbNick && fbNick !== "Joining...") {
-                setTimeout(() => {
-                    subscribeToOnlineSessions();
-                    updateOnlineStatus(fbNick);
-                }, 1000);
-            }
-        });
-
-        // ── BROADCAST ──
-        db.ref('broadcast/message').on('value', (snapshot) => {
-            const msg = snapshot.val();
-            if (msg) {
-                const div = document.createElement('div');
-                div.style.cssText = "position:fixed;top:10%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.9);color:#00e5ff;border:2px solid #00e5ff;padding:15px 30px;z-index:1000000;border-radius:8px;text-align:center;font-family:monospace;box-shadow:0 0 15px rgba(0,229,255,0.5);pointer-events:none;";
-                div.innerHTML = `<b style="color:#ff0055">SYSTEM NOTIFICATION</b><br>${msg}`;
-                document.body.appendChild(div);
-                setTimeout(() => div.remove(), 7000);
-            }
+        // Broadcast
+        db.ref('broadcast/message').on('value', snap => {
+            const msg = snap.val();
+            if (!msg) return;
+            const b = document.createElement('div');
+            b.style.cssText = "position:fixed;top:40px;left:50%;transform:translateX(-50%);z-index:1000000;background:rgba(0,0,0,0.9);border-left:4px solid #2ecc71;padding:15px;border-radius:5px;color:white;font-family:sans-serif;";
+            b.innerHTML = `<div style="color:#2ecc71;font-size:10px;font-weight:bold;">INTERIUM</div><div>${msg}</div>`;
+            document.body.appendChild(b);
+            setTimeout(() => b.remove(), 6000);
         });
     }
-
 })();
 
 // ────────────────────────────────────────────────
