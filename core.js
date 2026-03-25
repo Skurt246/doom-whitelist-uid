@@ -286,19 +286,18 @@ const replaceAdBoxWithChangelog = () => {
             <span style="color: rgba(255,255,255,0.4); font-size: 13px; font-weight: 400;">v14.0 — Phantom Release</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 9px; font-size: 13.5px;">
-            <div style="display: flex; gap: 10px;"><b style="color: #24e9ff;">[NEW]</b> <span>Пользователи клиента теперь видны в игре — ники подсвечиваются голубым градиентом.</span></div>
-            <div style="display: flex; gap: 10px;"><b style="color: #24e9ff;">[NEW]</b> <span>Подсветка работает везде — в табе, чате, меню кланов, запросах и списке участников.</span></div>
-            <div style="display: flex; gap: 10px;"><b style="color: #24e9ff;">[NEW]</b> <span>Рядом с ником пользователя клиента отображается иконка Interium.</span></div>
+            <div style="display: flex; gap: 10px;"><b style="color: #24e9ff;">[NEW]</b> <span>Пользователи клиента теперь определяются точнее — система распознаёт каждую сессию отдельно.</span></div>
+            <div style="display: flex; gap: 10px;"><b style="color: #24e9ff;">[NEW]</b> <span>Если игрок без клиента зашёл с тем же ником — он больше не будет подсвечен как пользователь.</span></div>
             <div style="display: flex; gap: 10px;"><b style="color: #a855f7;">[UI]</b> <span>Полный редизайн меню — новые переключатели, слайдеры, современный шрифт и иконки.</span></div>
             <div style="display: flex; gap: 10px;"><b style="color: #a855f7;">[UI]</b> <span>Обновлён блок профиля в нижней части меню — анимация и бейдж Lifetime.</span></div>
             <div style="display: flex; gap: 10px;"><b style="color: #a855f7;">[UI]</b> <span>В AutoCraft добавлены иконки предметов из игры вместо эмодзи.</span></div>
-            <div style="display: flex; gap: 10px;"><b style="color: #10b981;">[FIX]</b> <span>Исправлено мерцание подсветки ников — теперь анимация плавная и стабильная.</span></div>
+            <div style="display: flex; gap: 10px;"><b style="color: #10b981;">[FIX]</b> <span>Онлайн больше не пропадает при долгой игре на сервере.</span></div>
             <div style="display: flex; gap: 10px;"><b style="color: #10b981;">[FIX]</b> <span>Исправлены пустые вкладки Misc и Info в меню.</span></div>
             <div style="display: flex; gap: 10px;"><b style="color: #f1c40f;">[CFG]</b> <span>Настройки теперь корректно сохраняются и загружаются при следующем входе.</span></div>
             <div style="display: flex; gap: 10px;"><b style="color: #3b82f6;">[MISC]</b> <span>Общая оптимизация — меню работает плавнее, меньше нагрузки на браузер.</span></div>
         </div>
         <div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 10px; color: rgba(255,255,255,0.3); text-align: right; text-transform: uppercase; letter-spacing: 1px;">
-            Mar 15, 2026 &nbsp;·&nbsp; Status: <span style="color: #10b981;">All systems nominal</span>
+            Mar 25, 2026 &nbsp;·&nbsp; Status: <span style="color: #10b981;">All systems nominal</span>
         </div>`;
     document.body.appendChild(cl);
 };
@@ -628,14 +627,23 @@ window.WebSocket.prototype = OriginalWS.prototype;
 // ────────────────────────────────────────────────
 //  ✅ FAST RESPAWN
 // ────────────────────────────────────────────────
-const rawSetTimeout = window.setTimeout;
-window.setTimeout = function(cb, ms, ...args) {
-if (features.fastrespawn.enabled && ms === 1800) {
-return rawSetTimeout(cb, 0, ...args);
-}
-return rawSetTimeout(cb, ms, ...args);
-};
-
+    const rawTimeout = window.setTimeout;
+    window.setTimeout = function(fn, delay) {
+        if (delay === 1800) {
+            return rawTimeout(fn, 0);
+        }
+        return rawTimeout.apply(this, arguments);
+    };
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #death_animation,
+        .death_animation_class {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+    `;
+    document.head.appendChild(style);
 // ────────────────────────────────────────────────
 //  ✅ FULLBRIGHT (ALWAYS ON - БЕЗ ТУМБЛЕРА)
 // ────────────────────────────────────────────────
@@ -849,7 +857,26 @@ return findAllEnemies().filter(e => !e.teammate)[0] || null;
 // ────────────────────────────────────────────────
 //  ULTRA FAST CLAN SPAM (INTEGRATED)
 // ────────────────────────────────────────────────
-const interiumSeq = ["I_______", "_N______", "__T_____", "___E____", "____R___", "_____I__", "______U_", "_______M", "INTERIUM"];
+const interiumSeq = [
+    "I_      ", // Появилась I
+    "I/      ",
+    "IN_     ", // Закрепилась N
+    "IN\     ",
+    "INT_    ", // Закрепилась T
+    "INT[    ",
+    "INTE_   ", // Закрепилась E
+    "INTE]   ",
+    "INTER_  ", // Закрепилась R
+    "INTER/  ",
+    "INTERI_ ", // Закрепилась I
+    "INTERI\ ",
+    "INTERIU_", // Закрепилась U
+    "INTERIU/",
+    "INTERIUM", // Финал
+    "I|V73R1U", // Быстрый глитч-кадр в стиле NL
+    "INTERIUM", // Снова чистое для фиксации
+    "        "  // Пустота (мигание)
+];
 let spamIndex = 0;
 
 function startClanSpam() {
@@ -1449,7 +1476,7 @@ System Info
 Build Version
 </div>
 <div class="info-row"><span class="info-label">Version</span><span class="info-value">v14.0</span></div>
-<div class="info-row"><span class="info-label">Last Update</span><span class="info-value">Mar 15, 2026</span></div>
+<div class="info-row"><span class="info-label">Last Update</span><span class="info-value">Mar 25, 2026</span></div>
 <div class="info-row"><span class="info-label">Status</span><span class="info-value" style="color:#00ff88;background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);">● Active</span></div>
 </div>
 <div class="info-card">
@@ -1957,15 +1984,13 @@ const hack = () => {
 setInterval(hack, 1000);
 
 // ────────────────────────────────────────────────
-//  ✅ INTERIUM ONLINE / HOLO
-// ────────────────────────────────────────────────
-
-// ────────────────────────────────────────────────
-//  ✅ INTERIUM GREEN EDITION - FULL SOURCE (V3)
-//  Fixed Leaderboard Order: Number -> Icon -> Nick
+//  ✅ INTERIUM GREEN EDITION - FULL SOURCE (V7)
+//  Fix: мгновенное обнаружение смены ника через
+//       MutationObserver на лидерборде (не setInterval)
 // ────────────────────────────────────────────────
 
 (function() {
+    // ── СТИЛИ ────────────────────────────────────
     const holoStyle = document.createElement('style');
     holoStyle.innerHTML = `
         .holo-text {
@@ -1980,7 +2005,6 @@ setInterval(hack, 1000);
             gap: 4px !important;
             will-change: background-position;
         }
-        /* Иконка теперь привязана только к нику, а не к цифре */
         .interium-user-wrap {
             display: inline-flex;
             align-items: center;
@@ -2000,25 +2024,25 @@ setInterval(hack, 1000);
         }
         @keyframes holo-shift {
             from { background-position: 0% center; }
-            to { background-position: 200% center; }
+            to   { background-position: 200% center; }
         }
         .leader-label { color: #ff4d4d !important; font-weight: bold; }
     `;
     document.head.appendChild(holoStyle);
 
+    // ── SESSION ID ────────────────────────────────
+    const SESSION_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+    // ── ЗАГРУЗКА FIREBASE ─────────────────────────
     const firebaseScripts = [
         "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js",
         "https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"
     ];
-
     let firebaseLoaded = 0;
     firebaseScripts.forEach(src => {
         const s = document.createElement('script');
         s.src = src;
-        s.onload = () => {
-            firebaseLoaded++;
-            if (firebaseLoaded === firebaseScripts.length) initFirebase();
-        };
+        s.onload = () => { if (++firebaseLoaded === firebaseScripts.length) initFirebase(); };
         document.head.appendChild(s);
     });
 
@@ -2029,62 +2053,181 @@ setInterval(hack, 1000);
             projectId: "interium-a745d",
             appId: "1:711710548475:web:78175b9381fb55dee0ab5e"
         };
-
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let fbNick = "Joining...";
-        let interiumUsers = [];
 
-        function subscribeToOnlineSessions() {
-            db.ref('online_sessions').on('value', snap => {
+        let fbNick        = null;   // текущий активный ник
+        let keepaliveTimer = null;
+
+        const SESSION_TTL_MS     = 60 * 1000;
+        const HEARTBEAT_INTERVAL = 20 * 1000;
+
+        // nick → sessionId для живых сессий
+        let activeSessions = new Map();
+
+        // ── ЗАПИСЬ СЕССИИ ─────────────────────────
+        function writeSession(nick) {
+            if (!nick || !nick.trim()) return;
+            const ref = db.ref('online_sessions/' + nick);
+            ref.set({ sessionId: SESSION_ID, lastUpdate: Date.now() });
+            ref.onDisconnect().remove();
+        }
+
+        // ── УДАЛЕНИЕ СТАРОГО НИКА ─────────────────
+        // Удаляем ТОЛЬКО если sessionId совпадает с нашим —
+        // чтобы не удалить запись другого юзера с тем же ником
+        function removeSession(nick) {
+            if (!nick) return;
+            db.ref('online_sessions/' + nick).transaction(current => {
+                if (current && current.sessionId === SESSION_ID) return null;
+                return current; // чужая запись — не трогаем
+            });
+            db.ref('online_sessions/' + nick).onDisconnect().cancel();
+        }
+
+        function startKeepalive(nick) {
+            if (keepaliveTimer) clearInterval(keepaliveTimer);
+            writeSession(nick);
+            keepaliveTimer = setInterval(() => writeSession(nick), HEARTBEAT_INTERVAL);
+        }
+
+        // ── СМЕНА НИКА ────────────────────────────
+        function onNickChanged(newNick) {
+            if (!newNick || newNick === fbNick) return;
+            const oldNick = fbNick;
+            fbNick = newNick;
+            // Сначала удаляем старый ник — мгновенно
+            if (oldNick) removeSession(oldNick);
+            // Затем пишем новый и запускаем keepalive
+            startKeepalive(fbNick);
+        }
+
+        // ── ЧТЕНИЕ СВОЕГО НИКА ────────────────────
+        function getRealNick() {
+            const selfRow = document.querySelector('.leaderboard_row.self .left_text');
+            if (!selfRow) return null;
+            return selfRow.innerText.replace(/^\d+\.\s*/, '').trim() || null;
+        }
+
+        // ── МГНОВЕННОЕ ОБНАРУЖЕНИЕ СМЕНЫ НИКА ────
+        // Вместо setInterval — наблюдаем за DOM лидерборда.
+        // Игра меняет текст строки при смерти/респавне мгновенно,
+        // MutationObserver срабатывает в том же тике.
+        function watchNickChanges() {
+            const check = () => {
+                const nick = getRealNick();
+                if (nick) onNickChanged(nick);
+            };
+
+            // Сразу проверяем
+            check();
+
+            // Наблюдаем за изменениями в лидерборде
+            const leaderboardObserver = new MutationObserver(check);
+
+            const tryObserve = () => {
+                const lb = document.querySelector('.leaderboard_container, #leaderboard, .leaderboard');
+                if (lb) {
+                    leaderboardObserver.observe(lb, { childList: true, subtree: true, characterData: true });
+                } else {
+                    // Лидерборд ещё не появился — ждём через body observer
+                    const bodyWatcher = new MutationObserver(() => {
+                        const lb2 = document.querySelector('.leaderboard_container, #leaderboard, .leaderboard');
+                        if (lb2) {
+                            bodyWatcher.disconnect();
+                            leaderboardObserver.observe(lb2, { childList: true, subtree: true, characterData: true });
+                            check();
+                        }
+                    });
+                    bodyWatcher.observe(document.body, { childList: true, subtree: true });
+                }
+            };
+            tryObserve();
+
+            // Резервный поллинг раз в секунду — на случай если observer пропустит
+            setInterval(check, 1000);
+        }
+
+        // ── ЧИСТКА ПРОТУХШИХ СЕССИЙ ───────────────
+        function cleanStaleSessions() {
+            db.ref('online_sessions').once('value', snap => {
                 const data = snap.val();
-                interiumUsers = data ? Object.keys(data) : [];
-                processAllNicks();
+                if (!data) return;
+                const now = Date.now();
+                Object.entries(data).forEach(([nick, info]) => {
+                    if ((now - (info.lastUpdate || 0)) > SESSION_TTL_MS) {
+                        db.ref('online_sessions/' + nick).remove();
+                    }
+                });
             });
         }
-        subscribeToOnlineSessions();
+        cleanStaleSessions();
+        setInterval(cleanStaleSessions, 60 * 1000);
 
-        // ── CANVAS HOOK ──
+        // ── ПОДПИСКА НА СЕССИИ ────────────────────
+        db.ref('online_sessions').on('value', snap => {
+            const data = snap.val();
+            const now  = Date.now();
+            activeSessions.clear();
+            if (data) {
+                Object.entries(data).forEach(([nick, info]) => {
+                    if ((now - (info.lastUpdate || 0)) < SESSION_TTL_MS) {
+                        activeSessions.set(nick, info.sessionId);
+                    }
+                });
+            }
+            processAllNicks();
+        });
+
+        // ── ЗАПУСК СЛЕЖЕНИЯ ───────────────────────
+        watchNickChanges();
+        window.addEventListener('beforeunload', () => {
+            if (keepaliveTimer) clearInterval(keepaliveTimer);
+            removeSession(fbNick);
+        });
+
+        // ── CANVAS HOOK ───────────────────────────
         const _fillText = CanvasRenderingContext2D.prototype.fillText;
         CanvasRenderingContext2D.prototype.fillText = function(t, x, y, maxWidth) {
-            if (typeof t === 'string' && interiumUsers.some(u => t.includes(u))) {
-                const oldStyle = this.fillStyle;
-                const gradient = this.createLinearGradient(x - 40, y, x + 40, y);
-                gradient.addColorStop(0, "#2ecc71");
-                gradient.addColorStop(1, "#27ae60");
-                this.fillStyle = gradient;
-                _fillText.call(this, t, x, y, maxWidth);
-                this.fillStyle = oldStyle;
-                return;
+            if (typeof t === 'string') {
+                for (const [nick] of activeSessions) {
+                    if (t.includes(nick)) {
+                        const oldStyle = this.fillStyle;
+                        const gradient = this.createLinearGradient(x - 40, y, x + 40, y);
+                        gradient.addColorStop(0, "#2ecc71");
+                        gradient.addColorStop(1, "#27ae60");
+                        this.fillStyle = gradient;
+                        _fillText.call(this, t, x, y, maxWidth);
+                        this.fillStyle = oldStyle;
+                        return;
+                    }
+                }
             }
             return _fillText.call(this, t, x, y, maxWidth);
         };
 
+        // ── РАСКРАСКА ЭЛЕМЕНТОВ ───────────────────
         function paintElement(el, nick) {
-            if (interiumUsers.includes(nick) || nick === fbNick) {
-                el.classList.add('holo-text', 'interium-user-wrap');
-            } else {
-                el.classList.remove('holo-text', 'interium-user-wrap');
-            }
+            if (!nick) return;
+            const yes = activeSessions.has(nick);
+            el.classList.toggle('holo-text',          yes);
+            el.classList.toggle('interium-user-wrap', yes);
         }
 
         function processAllNicks() {
-            // 1. Лидерборд (Цифра -> Иконка -> Ник)
+            // 1. Лидерборд
             document.querySelectorAll('.leaderboard_row .left_text').forEach(row => {
                 const rawText = row.innerText;
-                const match = rawText.match(/^(\d+\.\s*)(.+)$/); // Отделяем "3. " от "дерево"
-                if (match) {
-                    const numberPart = match[1];
-                    const nickPart = match[2].trim();
-
-                    // Чтобы не перерисовывать постоянно, проверяем флаг
-                    if (!row.dataset.interiumProcessed || row.dataset.lastNick !== nickPart) {
-                        row.innerHTML = `${numberPart}<span class="nick-internal">${nickPart}</span>`;
-                        row.dataset.interiumProcessed = "true";
-                        row.dataset.lastNick = nickPart;
-                    }
-                    paintElement(row.querySelector('.nick-internal'), nickPart);
+                const match   = rawText.match(/^(\d+\.\s*)(.+)$/);
+                if (!match) return;
+                const numberPart = match[1];
+                const nickPart   = match[2].trim();
+                if (!row.dataset.interiumProcessed || row.dataset.lastNick !== nickPart) {
+                    row.innerHTML = `${numberPart}<span class="nick-internal">${nickPart}</span>`;
+                    row.dataset.interiumProcessed = "true";
+                    row.dataset.lastNick = nickPart;
                 }
+                paintElement(row.querySelector('.nick-internal'), nickPart);
             });
 
             // 2. Чат
@@ -2100,26 +2243,11 @@ setInterval(hack, 1000);
             });
         }
 
-        const globalObserver = new MutationObserver(processAllNicks);
-        globalObserver.observe(document.body, { childList: true, subtree: true });
+        // ── ГЛОБАЛЬНЫЙ OBSERVER ───────────────────
+        new MutationObserver(processAllNicks)
+            .observe(document.body, { childList: true, subtree: true });
 
-        // Система статуса и прочее
-        function getRealNick() {
-            const selfRow = document.querySelector('.leaderboard_row.self .left_text');
-            if (selfRow) return selfRow.innerText.replace(/^\d+\.\s*/, '').trim();
-            return null;
-        }
-
-        setInterval(() => {
-            const nick = getRealNick();
-            if (nick && nick !== fbNick) {
-                fbNick = nick;
-                db.ref('online_sessions/' + nick).set({ name: nick, status: "active", lastUpdate: Date.now() });
-                db.ref('online_sessions/' + nick).onDisconnect().remove();
-            }
-        }, 3000);
-
-        // Broadcast
+        // ── BROADCAST ────────────────────────────
         db.ref('broadcast/message').on('value', snap => {
             const msg = snap.val();
             if (!msg) return;
