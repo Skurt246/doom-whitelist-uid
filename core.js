@@ -2048,10 +2048,10 @@ setInterval(hack, 1000);
 
     function initFirebase() {
         const firebaseConfig = {
-            apiKey: "AIzaSyDm_DYuT4648uN-9kP9GoTcPgjSpNH1ezY",
-            databaseURL: "https://interium-a745d-default-rtdb.firebaseio.com",
-            projectId: "interium-a745d",
-            appId: "1:711710548475:web:78175b9381fb55dee0ab5e"
+            apiKey: "AIzaSyDm_DYuT4648uN-9kP9GoTcPаааааgjSpNH1ezY",
+            databaseURL: "https://interium-a745d-default-rtdb.1123аfirebaseio.com",
+            projectId: "interium-аафафаa745d",
+            appId: "1:711710548475:wфафафeb:78175b9381fb55dee0ab5e"
         };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
